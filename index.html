@@ -1,0 +1,3915 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Log OpAnf — Logística nas Operações Anfíbias</title>
+<link rel="manifest" href="/LogOpAnf-CISC2025/manifest.json">
+<meta name="theme-color" content="#0d1b2a">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Log OpAnf">
+<link rel="apple-touch-icon" href="/LogOpAnf-CISC2025/icon-192.png">
+<!-- React 18 production (SEM Babel — código pré-compilado) -->
+<script src="https://cdn.jsdelivr.net/npm/react@18.3.1/umd/react.production.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/react-dom@18.3.1/umd/react-dom.production.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0d1b2a;color:#e8f4fd;font-family:"Segoe UI",system-ui,sans-serif;min-height:100vh}
+#loading{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;gap:14px;color:#f0b429}
+@keyframes rot{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+.spin{font-size:36px;animation:rot 2s linear infinite}
+</style>
+</head>
+<body>
+<div id="loading">
+  <div class="spin">⚓</div>
+  <div style="font-size:16px;font-weight:700">Log OpAnf</div>
+  <div style="font-size:12px;color:#9db4d0">Carregando...</div>
+</div>
+<div id="root"></div>
+<script>
+"use strict";
+
+const {
+  useState,
+  useEffect,
+  useRef,
+  useCallback
+} = React;
+
+// ===== CSS =====
+const G = `
+:root{--bg:#0d1b2a;--bg2:#1a2744;--bg3:#1e3055;--bd:#2d4a7a;--tx:#e8f4fd;--tx2:#9db4d0;--gd:#f0b429;--gd2:#d99a1e;--gn:#22c55e;--rd:#ef4444;--bl:#3b82f6;--pp:#a855f7;--or:#f97316}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:"Segoe UI",system-ui,sans-serif;background:var(--bg);color:var(--tx);min-height:100vh;overflow-x:hidden}
+.app{display:flex;flex-direction:column;min-height:100vh;max-width:900px;margin:0 auto}
+.topbar{background:var(--bg2);border-bottom:2px solid var(--gd);padding:10px 16px;display:flex;align-items:center;gap:8px;position:sticky;top:0;z-index:100}
+.topbar-logo{font-size:20px;font-weight:800;color:var(--gd);letter-spacing:1px}
+.topbar-sub{font-size:11px;color:var(--tx2)}
+.tabs-wrap{background:var(--bg2);border-bottom:1px solid var(--bd);padding:6px 8px;display:flex;gap:4px;overflow-x:auto;position:sticky;top:60px;z-index:99;scrollbar-width:none}
+.tabs-wrap::-webkit-scrollbar{display:none}
+.tab-btn{padding:6px 12px;border-radius:20px;border:1px solid var(--bd);background:transparent;color:var(--tx2);cursor:pointer;font-size:12px;white-space:nowrap;transition:all .2s}
+.tab-btn:hover{background:var(--bg3);color:var(--tx)}
+.tab-btn.active{background:var(--gd);color:#0d1b2a;font-weight:700;border-color:var(--gd)}
+.page{padding:16px;flex:1}
+.card{background:var(--bg2);border:1px solid var(--bd);border-radius:12px;padding:16px;margin-bottom:12px}
+.card-hd{font-size:15px;font-weight:700;color:var(--gd);margin-bottom:10px;display:flex;align-items:center;gap:8px}
+h2{color:var(--gd);font-size:18px;margin-bottom:12px;border-bottom:1px solid var(--bd);padding-bottom:8px}
+.btn{padding:8px 16px;border-radius:8px;border:none;cursor:pointer;font-size:13px;font-weight:600;transition:all .2s;display:inline-flex;align-items:center;gap:6px}
+.btn-gold{background:var(--gd);color:#0d1b2a}
+.btn-gold:hover{background:var(--gd2)}
+.btn-outline{background:transparent;border:1px solid var(--bd);color:var(--tx2)}
+.btn-outline:hover{background:var(--bg3);color:var(--tx)}
+.btn-green{background:var(--gn);color:#fff}
+.btn-red{background:var(--rd);color:#fff}
+.btn-blue{background:var(--bl);color:#fff}
+.btn-sm{padding:5px 10px;font-size:12px}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:700}
+.badge-gold{background:#2a1f00;color:var(--gd);border:1px solid var(--gd2)}
+.badge-green{background:#052e16;color:var(--gn);border:1px solid #166534}
+.badge-red{background:#2a0a0a;color:var(--rd);border:1px solid #7f1d1d}
+.badge-blue{background:#0a1f3d;color:var(--bl);border:1px solid #1e40af}
+.counter{font-size:12px;color:var(--tx2);text-align:right;margin-bottom:8px}
+.progress-bar-wrap{background:var(--bg3);border-radius:10px;height:8px;margin-bottom:12px;overflow:hidden}
+.progress-bar-fill{height:100%;background:linear-gradient(90deg,var(--gd),var(--or));border-radius:10px;transition:width .4s}
+.tip-box{background:#1a1400;border:1px solid var(--gd2);border-radius:8px;padding:10px 12px;margin-top:8px;font-size:12px;color:#e8c84a;line-height:1.5}
+.mem-box{background:#0a1f12;border:1px solid #166534;border-radius:8px;padding:10px 12px;margin-top:8px;font-size:12px;color:#86efac;line-height:1.5}
+.gabarito-box{background:#0a1f3d;border:1px solid #1e40af;border-radius:8px;padding:10px 12px;margin-top:8px;font-size:12px;color:#93c5fd;line-height:1.5}
+.gabarito-resumido{background:#1a0a2e;border:1px solid #6b21a8;border-radius:8px;padding:8px 12px;margin-top:6px;font-size:12px;color:#d8b4fe}
+.question-num{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:50%;background:var(--gd);color:#0d1b2a;font-weight:800;font-size:13px;flex-shrink:0}
+.alt-btn{width:100%;text-align:left;padding:10px 14px;border-radius:8px;border:1px solid var(--bd);background:var(--bg3);color:var(--tx);cursor:pointer;margin-bottom:6px;font-size:13px;transition:all .2s;display:flex;align-items:center;gap:10px}
+.alt-btn:hover:not(:disabled){border-color:var(--gd);background:#1a2033}
+.alt-btn.correct{border-color:var(--gn);background:#052e16;color:var(--gn)}
+.alt-btn.wrong{border-color:var(--rd);background:#2a0a0a;color:var(--rd)}
+.alt-btn.selected{border-color:var(--bl);background:#0a1f3d;color:var(--bl)}
+.alt-btn:disabled{cursor:default}
+.alt-letter{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:50%;background:var(--bd);color:var(--tx);font-weight:700;font-size:12px;flex-shrink:0}
+textarea{width:100%;background:var(--bg3);border:1px solid var(--bd);border-radius:8px;color:var(--tx);padding:10px;font-size:13px;resize:vertical;min-height:80px;font-family:inherit}
+textarea:focus{outline:none;border-color:var(--bl)}
+input[type=text]{background:var(--bg3);border:1px solid var(--bd);border-radius:8px;color:var(--tx);padding:8px 12px;font-size:13px;font-family:inherit}
+input[type=text]:focus{outline:none;border-color:var(--bl)}
+.search-wrap{position:relative;margin-bottom:16px}
+.search-wrap input{width:100%;padding-left:36px}
+.search-icon{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--tx2);font-size:16px}
+.result-item{background:var(--bg2);border:1px solid var(--bd);border-radius:8px;padding:12px;margin-bottom:8px}
+.result-item mark{background:#2a1f00;color:var(--gd);border-radius:3px;padding:0 3px}
+.flashcard-wrap{perspective:1000px;cursor:pointer}
+.flashcard{width:100%;position:relative;transition:transform .5s;transform-style:preserve-3d}
+.flashcard.flipped{transform:rotateY(180deg)}
+.fc-face{position:absolute;width:100%;backface-visibility:hidden;border-radius:12px;padding:20px;display:flex;flex-direction:column;align-items:center;justify-content:center;border:2px solid var(--bd)}
+.fc-front{background:var(--bg2);border-color:var(--gd)}
+.fc-back{background:#0a1f12;border-color:var(--gn);transform:rotateY(180deg)}
+.fc-front-text{font-size:17px;font-weight:700;text-align:center;color:var(--gd)}
+.fc-back-text{font-size:14px;text-align:center;color:var(--tx);line-height:1.6}
+.corr-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.corr-left-item{background:var(--bg3);border:1px solid var(--bd);border-radius:8px;padding:10px;cursor:pointer;transition:all .2s;font-size:13px;margin-bottom:6px}
+.corr-left-item.selected{border-color:var(--bl);background:#0a1f3d}
+.corr-left-item.matched{border-color:var(--gn);background:#052e16}
+.corr-left-item.wrong-match{border-color:var(--rd);background:#2a0a0a}
+.corr-right-item{background:var(--bg3);border:1px solid var(--bd);border-radius:8px;padding:10px;cursor:pointer;transition:all .2s;font-size:13px;min-height:44px;display:flex;align-items:center;margin-bottom:6px}
+.corr-right-item:hover{border-color:var(--gd)}
+.corr-right-item.matched{border-color:var(--gn);background:#052e16}
+.corr-right-item.wrong-match{border-color:var(--rd);background:#2a0a0a}
+.result-screen{text-align:center;padding:20px}
+.score-big{font-size:48px;font-weight:900;color:var(--gd)}
+.exer-menu-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(155px,1fr));gap:10px;margin-top:12px}
+.exer-menu-btn{background:var(--bg2);border:1px solid var(--bd);border-radius:12px;padding:16px;text-align:center;cursor:pointer;transition:all .2s}
+.exer-menu-btn:hover{border-color:var(--gd);background:var(--bg3)}
+.exer-menu-btn .icon{font-size:24px;margin-bottom:8px}
+.exer-menu-btn .name{font-size:13px;font-weight:600;color:var(--tx)}
+.exer-menu-btn .count{font-size:11px;color:var(--tx2);margin-top:4px}
+.mindmap-wrap{width:100%;overflow:auto;position:relative;background:var(--bg2);border-radius:12px;border:1px solid var(--bd)}
+.mm-controls{display:flex;gap:6px;padding:8px;background:var(--bg3);border-top:1px solid var(--bd);flex-wrap:wrap}
+.inicio-hero{text-align:center;padding:24px 16px;background:linear-gradient(135deg,#0d1b2a,#1a2744);border-radius:12px;border:1px solid var(--gd);margin-bottom:16px}
+.inicio-hero h1{font-size:20px;color:var(--gd);margin-bottom:6px}
+.stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:16px}
+.stat-card{background:var(--bg2);border:1px solid var(--bd);border-radius:10px;padding:12px;text-align:center}
+.stat-num{font-size:22px;font-weight:800;color:var(--gd)}
+.stat-label{font-size:11px;color:var(--tx2);margin-top:2px}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:8px}
+.btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.q-block{background:var(--bg2);border-radius:12px;border:1px solid var(--bd);padding:16px;margin-bottom:12px}
+.q-text{font-size:14px;font-weight:600;color:var(--tx);margin-bottom:12px;line-height:1.5}
+.qp-section{margin-bottom:16px;background:var(--bg2);border:1px solid var(--gd2);border-radius:12px;padding:14px}
+.qp-q{font-size:14px;font-weight:600;color:var(--tx);margin-bottom:8px;white-space:pre-line;line-height:1.5}
+.corr-num{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:50%;background:var(--gd);color:#0d1b2a;font-weight:800;font-size:11px;margin-right:6px;flex-shrink:0}
+@media(max-width:600px){.stat-grid{grid-template-columns:repeat(2,1fr)}.corr-grid{grid-template-columns:1fr}.exer-menu-grid{grid-template-columns:repeat(2,1fr)}}
+`;
+
+// ===== UTILS =====
+const shuffle = arr => [...arr].sort(() => Math.random() - 0.5);
+const clamp = (n, min, max) => Math.max(min, Math.min(max, n));
+const LS = {
+  get: (k, d) => {
+    try {
+      const v = localStorage.getItem(k);
+      return v != null ? JSON.parse(v) : d;
+    } catch {
+      return d;
+    }
+  },
+  set: (k, v) => {
+    try {
+      localStorage.setItem(k, JSON.stringify(v));
+    } catch {}
+  }
+};
+
+// ===== FLASHCARDS =====
+const FC = [{
+  id: 1,
+  f: "O que é LOGÍSTICA?",
+  v: "Componente da arte da guerra para OBTER e DISTRIBUIR às FA recursos de pessoal, material e serviços, nas quantidades, qualidades, momento e lugar determinados.",
+  d: "Foco: OBTER + DISTRIBUIR",
+  dm: "LOG = 'Levar Os Gêneros'. ASTMPD = 6 funções.",
+  cat: "Cap 1"
+}, {
+  id: 2,
+  f: "O que é ApSvCmb?",
+  v: "Apoio proporcionado por PARCELA de um GptOpFuzNav ao CONJUNTO, por meio das funções logísticas essenciais à sua manutenção em combate. É um CASO ESPECIAL da logística militar.",
+  d: "Parte apoia o todo em combate",
+  dm: "ApSvCmb = caso especial. Interno à ForDbq, orientado para o COMBATE.",
+  cat: "Cap 1"
+}, {
+  id: 3,
+  f: "6 Funções Logísticas da MB:",
+  v: "1.Abastecimento 2.Saúde 3.Transporte 4.Manutenção e Salvamento 5.Pessoal 6.Desenvolvimento de Bases",
+  d: "Mnemônico: ASTMPD",
+  dm: "A Saúde Transporta Material Para o Desenvolvimento.",
+  cat: "Cap 1"
+}, {
+  id: 4,
+  f: "3 fases do Ciclo Logístico:",
+  v: "1. Determinação de Necessidades (MAIS IMPORTANTE)\n2. Obtenção\n3. Distribuição",
+  d: "Det.Nec. é a mais importante",
+  dm: "DOD = Determino, Obtenho, Distribuo.",
+  cat: "Cap 1"
+}, {
+  id: 5,
+  f: "8 Princípios Básicos da Logística:",
+  v: "1.Interdependência 2.Objetivo 3.Limites 4.Coordenação 5.Comando 6.Previsão 7.Economia de Esforço 8.Subordinação e Apoio",
+  d: "IO LC C P ES",
+  dm: "IO LC C PES = Interdep, Objetivo, Limites, Coord, Cmdo, Previsão, Econ, Subord.",
+  cat: "Cap 1"
+}, {
+  id: 6,
+  f: "5 Atributos Essenciais da Logística:",
+  v: "1.Flexibilidade 2.Prioridade 3.Segurança (=Sobrevivência no ApSvCmb) 4.Controle 5.Simplicidade",
+  d: "FPSCS",
+  dm: "Segurança no ApSvCmb = Sobrevivência. Lembre: FPSCS.",
+  cat: "Cap 1"
+}, {
+  id: 7,
+  f: "4 tipos de AApL:",
+  v: "1.AApP — Área de Apoio de Praia (DP)\n2.AApZDbq — Área de Apoio de Zona de Desembarque (helicópteros)\n3.AApSvCmb — Área principal\n4.ILS — Bases mínimas",
+  d: "Praia→ZDbq→SvCmb→ILS",
+  dm: "P-Z-S-I: do litoral ao interior. ILS = menor escalão.",
+  cat: "Cap 2"
+}, {
+  id: 8,
+  f: "O que é AApP?",
+  v: "Área junto à Praia de Desembarque (PDbq), organizada pelo Destacamento de Praia (DP). Facilita desembarque e evacuação de baixas, PG e material capturado.",
+  d: "AApP = Praia + DP",
+  dm: "Praia = porta de entrada. DP opera. Entra tropa/material, sai baixa/PG/capturado.",
+  cat: "Cap 2"
+}, {
+  id: 9,
+  f: "O que é ILS?",
+  v: "Instalação Logística Sumária — bases MÍNIMAS de ApSvCmb nos escalões Unidade e Subunidade, para apoio contínuo e PRESERVAR A MOBILIDADE.",
+  d: "ILS = mínimo + mobilidade",
+  dm: "ILS = 'Light and Small'. Menor e mais móvel.",
+  cat: "Cap 2"
+}, {
+  id: 10,
+  f: "Classes de Suprimentos I a V-A:",
+  v: "I: Subsistência (água, rações)\nII: Natureza geral c/ dotação (armamentos, viaturas)\nIII: Combustíveis (exceto aviação)\nIII-A: Combustíveis de aviação\nIV: Natureza geral s/ dotação (construção)\nV: Munição (exceto aviação)\nV-A: Munição de aviação",
+  d: "I=Comida, II=Equipto, III=Comb, IV=Constr, V=Munição",
+  dm: "I Comi 2 Equiptos, 3 Combustíveis, 4 Constrói, 5 Mato.",
+  cat: "Cap 2"
+}, {
+  id: 11,
+  f: "O que é IDMO e sua fórmula?",
+  v: "Índice de Disponibilidade de Meios Operativos.\nIDMO = Disponíveis ÷ Existentes\nRecebe grau de sigilo CONFIDENCIAL quando preenchido.",
+  d: "IDMO = D ÷ E (CONFIDENCIAL)",
+  dm: "D÷E: quantos prontos de todos que tenho? Confidencial!",
+  cat: "Cap 3"
+}, {
+  id: 12,
+  f: "Periodicidade do IDMO, QNSI e indicadores?",
+  v: "MENSALMENTE — encaminhados pelo ComFFE, pelas OM Distritais e pelas demais OM detentoras.",
+  d: "Periodicidade = MENSAL",
+  dm: "Todo mês, o CMatFN quer saber! Anual = só Necessidades Mínimas (julho).",
+  cat: "Cap 3"
+}, {
+  id: 13,
+  f: "O que é QNSI?",
+  v: "Quadro de Necessidades de Sobressalentes para Aplicação Imediata em Meios Operativos — informa ao CMatFN necessidade de sobressalentes de ALTA PRIORIDADE (via RMC/SMNC).",
+  d: "QNSI = peças urgentes",
+  dm: "Quando o meio parou, precisa de peça agora! QNSI = peças críticas.",
+  cat: "Cap 3"
+}, {
+  id: 14,
+  f: "FALHA vs DEFEITO (QNSI):",
+  v: "FALHA: IMPEDE o funcionamento do item.\nDEFEITO: NÃO impede, mas pode causar indisponibilidade a curto/longo prazo.",
+  d: "Falha=PARA / Defeito=enfraquece",
+  dm: "Falha=Fechou. Defeito=Doente. Falha para, Defeito enfraquece.",
+  cat: "Cap 3"
+}, {
+  id: 15,
+  f: "Qual documento define critérios de indisponibilidade?",
+  v: "CMatBoTec — Boletim Técnico do CMatFN.",
+  d: "CMatBoTec = critérios de indisponibilidade",
+  dm: "CMatBo(let)Tec = CMatFN define o que é indisponível.",
+  cat: "Cap 3"
+}, {
+  id: 16,
+  f: "Níveis de Estocagem dos Depósitos:",
+  v: "1.Operativo: atende demanda entre duas recomposições\n2.Mínimo (Segurança): piso — nunca ultrapassar para baixo\n3.Máximo: Mín + Oper (teto — preserva mobilidade)",
+  d: "Mín=piso / Oper=uso / Máx=teto",
+  dm: "MOM: Mínimo, Operativo, Máximo. Máx=Mín+Oper. Teto preserva mobilidade.",
+  cat: "Cap 2"
+}, {
+  id: 17,
+  f: "3 formações de marcha motorizada:",
+  v: "1.Coluna CERRADA: 15-50 vtr/km, distância mínima\n2.Coluna ABERTA: 6-14 vtr/km, distância constante\n3.INFILTRAÇÃO: 1-5 vtr/km, máximo sigilo",
+  d: "CAI: densidade cai 50→14→5",
+  dm: "CAI = Cerrada, Aberta, Infiltração. Densidade cai.",
+  cat: "Cap 4"
+}, {
+  id: 18,
+  f: "Tipos de ALTO e suas características:",
+  v: "TÉCNICO: após 45min de marcha → 15min (inspeção MNT 1° escalão)\nPERIÓDICO: a cada 2h de marcha → 10min (descanso)\nGRANDE ALTO: 30min-1h (refeições e abastecimento)",
+  d: "T=45/15 · P=2h/10 · G=30-60min",
+  dm: "TPG: Técnico(45→15), Periódico(2h→10), Grande(30-60/refeição).",
+  cat: "Cap 4"
+}, {
+  id: 19,
+  f: "3 formas de ESTACIONAMENTO:",
+  v: "1.ACANTONAMENTO: edificações permanentes (melhor)\n2.ACAMPAMENTO: barracas\n3.BIVAQUE: ao ar livre (mais frequente no Brasil)",
+  d: "Acant=casas / Acampa=barracas / Bivaque=céu",
+  dm: "AAB: A(hotel), A(barraca), B(céu). Melhor→pior: Acant>Acampa>Bivaque.",
+  cat: "Cap 4"
+}, {
+  id: 20,
+  f: "Composição do Destacamento Precursor:",
+  v: "GRUPO DE ITINERÁRIO:\n- TurRec (reconhece → produz RelRec)\n- TuTr (baliza/trânsito)\n- TuSap (obras)\nGRUPO DE ESTACIONAMENTO",
+  d: "GpItn(TurRec+TuTr+TuSap) + Gp Estac",
+  dm: "Precursor vai ANTES. TurRec reconhece, TuTr baliza, TuSap constrói.",
+  cat: "Cap 4"
+}, {
+  id: 21,
+  f: "2 tipos de Movimentos de Tropa:",
+  v: "PREPARATÓRIOS: sem contato inimigo, na ZA.\nTÁTICOS: sob condições de combate, na ZC.",
+  d: "Preparatório=ZA / Tático=ZC",
+  dm: "PA-ZA e TA-ZC. Terminam em Zreu ou Zestac.",
+  cat: "Cap 4"
+}, {
+  id: 22,
+  f: "Coluna CERRADA — detalhes:",
+  v: "Compacta, distância MÍNIMA de segurança.\nDensidade: 15-50 vtr/km\nDistância: 1,5×vel(km/h) metros\nNormal em marchas NOTURNAS. Excelente controle.",
+  d: "1.5×vel(km/h)=distância(m), noturna",
+  dm: "Cerrada=Compacta. 1.5×vel(km/h)=dist(m). Normal à noite.",
+  cat: "Cap 4"
+}, {
+  id: 23,
+  f: "Coluna ABERTA — detalhes:",
+  v: "Distância CONSTANTE entre viaturas.\nDensidade: 6-14 vtr/km\nDistância: 60-200m\nIndicada para movimentos DIURNOS sem escolta aérea.",
+  d: "Distância constante, diurna, 6-14 vtr/km",
+  dm: "Aberta=distância Absoluta (constante). Diurna. 6-14 vtr/km.",
+  cat: "Cap 4"
+}, {
+  id: 24,
+  f: "INFILTRAÇÃO — detalhes:",
+  v: "Viaturas isoladas ou em pequenos grupos.\nDensidade: 1-5 vtr/km\nDistância: 200-1000m\nMáximo SIGILO, controle FRACO.",
+  d: "Sigilo máximo, 1-5 vtr/km, controle fraco",
+  dm: "Infiltração=invisível. Parece tráfego civil. Sigilo ótimo, controle fraco.",
+  cat: "Cap 4"
+}, {
+  id: 25,
+  f: "O que é RelRec?",
+  v: "Relatório de Reconhecimento de Itinerários — produzido pela TurRec. Contém distâncias, obstruções e velocidade horária para cada trecho. É a BASE do planejamento da marcha.",
+  d: "RelRec = base do planejamento de marcha",
+  dm: "RelRec=Receita da Marcha. Sem ele, sem planejamento.",
+  cat: "Cap 4"
+}, {
+  id: 26,
+  f: "Missões da Turma de Inspeção (TuInsp):",
+  v: "- Marcha na RETAGUARDA\n- Recupera viaturas avariadas\n- Inspeciona ZEstac após abandono\n- Recolhe guias, guardas e balizadores\n- Investiga acidentes, mortos e feridos",
+  d: "TuInsp = varredura da retaguarda",
+  dm: "TuInsp=Varre-Tudo. Vai por último, limpa o rastro.",
+  cat: "Cap 4"
+}, {
+  id: 27,
+  f: "3 variantes da Marcha por Escalões:",
+  v: "1.MÍNIMA: menor percurso a pé, sem margem de segurança\n2.MAIS EFICIENTE: menor tempo total, ninguém espera ninguém\n3.PONTO INTERMEDIÁRIO: PEmbq entre as duas, com margem de segurança",
+  d: "MEI: Mínima, Eficiente, Intermediária",
+  dm: "MEI: Mínima(menos a pé), Eficiente(menos tempo), Intermediária(entre os dois).",
+  cat: "Cap 4"
+}, {
+  id: 28,
+  f: "O que é EPA?",
+  v: "Estrada Principal de Abastecimento — sistema viário selecionado pelo OLog para apoiar subordinados. Maior prioridade de conservação de engenharia e controle de trânsito (PM).",
+  d: "EPA = via logística principal",
+  dm: "EPA=Estrada Principal Apoio. OLog seleciona, Eng conserva, PM controla.",
+  cat: "Cap 2"
+}, {
+  id: 29,
+  f: "LET e LEP:",
+  v: "LET (Escurecimento TOTAL): nenhuma luz a partir da linha.\nLEP (Escurecimento PARCIAL): apenas lanternas militares a partir da linha.",
+  d: "LET=zero luz / LEP=lanterna",
+  dm: "LET=Luz Extinta Totalmente. LEP=Luz Em Pé (lanterna). LEP antes, LET depois.",
+  cat: "Cap 2"
+}, {
+  id: 30,
+  f: "Processos de Distribuição de Suprimentos:",
+  v: "Por PONTO: apoiado VAI BUSCAR na instalação. Usado nos estágios INICIAIS do AssAnf (DP sem viaturas).\nPor UNIDADE: agência ENTREGA ao apoiado.",
+  d: "Ponto=busca / Unidade=entrega",
+  dm: "Ponto=Pickup, Unidade=Delivery. Início AssAnf=Pickup (DP sem viaturas).",
+  cat: "Cap 2"
+}, {
+  id: 31,
+  f: "BtlLogFuzNav — subunidades:",
+  v: "CiaCmdoSv (Cmdo+comunicações+serviços)\nCiaAbst (Abastecimento)\nCiaMnt (Manutenção 2° e 3° escalão)\nCiaS (Saúde)\nCiaTrnp (Transporte)",
+  d: "BtlLog = CiaCmdoSv+CiaAbst+CiaMnt+CiaS+CiaTrnp",
+  dm: "Batalhão=Base de Apoio. Tem TUDO: Cmdo, Abst, Mnt, Saúde, Trnp.",
+  cat: "Cap 2"
+}, {
+  id: 32,
+  f: "4 escalões de MANUTENÇÃO:",
+  v: "1°: Operadores/equipes orgânicas (preventiva)\n2°: BtlLogFuzNav (além da capacidade orgânica)\n3°: OMPS (maior complexidade)\n4°: Fabricante ou Parques de Manutenção",
+  d: "1=operador / 2=BtlLog / 3=OMPS / 4=Fabricante",
+  dm: "1234 escada: 1(tropa), 2(BtlLog), 3(OMPS), 4(fabricante).",
+  cat: "Cap 2"
+}, {
+  id: 33,
+  f: "PCTran e PCCTran:",
+  v: "PCTran: Posto de Controle de Trânsito — PM em pontos críticos.\nPCCTran: Central junto ao PC do GptOpFuzNav — coordena os PCTran.",
+  d: "PCTran=PM no cruzamento / PCCTran=central",
+  dm: "PCTran=Policial no Cruzamento. PCCTran=QG do controle de trânsito.",
+  cat: "Cap 2"
+}, {
+  id: 34,
+  f: "5 perguntas da Determinação de Necessidades:",
+  v: "O QUÊ? (qualidade)\nQUANTO? (quantidade)\nQUANDO? (tempo)\nONDE? (local)\nO QUE É MAIS IMPORTANTE? (prioridade)",
+  d: "5Q+P: Quê, Quanto, Quando, Onde, Prioridade",
+  dm: "5Q+P. Responder isso = Determinação de Necessidades.",
+  cat: "Cap 1"
+}, {
+  id: 35,
+  f: "Área mínima no estacionamento:",
+  v: "SEM ataque aéreo: 40m²/homem e 80m²/viatura\nCOM ataque aéreo: 50m²/homem ou 100m²/viatura\n(usa o MAIOR valor entre pessoal e viaturas)",
+  d: "Sem:40/80 · Com:50/100 (usa maior)",
+  dm: "4×8=sem ataque, 5×10=com ataque. Com ataque usa o MAIOR dos dois.",
+  cat: "Cap 4"
+}, {
+  id: 36,
+  f: "Índice de Disponibilidade de Controle:",
+  v: "= Índice de Disponibilidade Adequada + 10% (arredondado para cima)\nAbaixo disso = ÁREA CRÍTICA (ação urgente!)",
+  d: "Controle = Adequada + 10%",
+  dm: "+10% de segurança. Abaixo disso=Área Crítica=ação urgente imediata!",
+  cat: "Cap 3"
+}, {
+  id: 37,
+  f: "Material CAPTURADO vs SALVADO:",
+  v: "SALVADO: nosso material ou de aliados encontrado abandonado.\nCAPTURADO: material DO INIMIGO — fonte de dados; pode ser usado com autorização.",
+  d: "Salvado=nosso / Capturado=inimigo",
+  dm: "Salvado=Resgatado(nosso). Capturado=Troféu(inimigo). Capturado=inteligência.",
+  cat: "Cap 2"
+}, {
+  id: 38,
+  f: "Suprimentos Ordinários, Extraordinários e Controlados:",
+  v: "ORDINÁRIOS: tabelas de dotação, sem procedimento especial.\nEXTRAORDINÁRIOS: não constantes, exigem justificativa.\nCONTROLADOS: críticos, controlados pelo Comando (combustíveis, baterias).",
+  d: "Ord=normal / Extra=justificado / Controlado=crítico",
+  dm: "OEC: Ordinário(normal), Extraordinário(exceção), Controlado(crítico).",
+  cat: "Cap 2"
+}, {
+  id: 39,
+  f: "O que é Plano de Circulação?",
+  v: "Plano que facilita movimentos rodoviários numa rede de estradas. Define COMO os recursos de transporte são utilizados (não O QUÊ transportar). Distribuído como Carta de Circulação na O Log.",
+  d: "Circulação = como usar as estradas",
+  dm: "Circulação não carrega, só organiza. Regulada pela Chefia de Transporte.",
+  cat: "Cap 4"
+}, {
+  id: 40,
+  f: "Gráfico de Marcha:",
+  v: "Diagrama TEMPO (eixo X) × ESPAÇO (eixo Y) para planejamento e controle das marchas. Mostra testa e cauda de cada grupamento a qualquer momento. Organizado em papel milimetrado.",
+  d: "X=tempo, Y=espaço. Testa e cauda = linhas paralelas",
+  dm: "GPS manual em papel. Velocidade=inclinação. Mais inclinado=mais rápido.",
+  cat: "Cap 4"
+}];
+
+// ===== MÚLTIPLA ESCOLHA =====
+const MC = [{
+  id: 1,
+  p: "O IDMO é extraído dividindo-se:",
+  a: [{
+    l: "A",
+    t: "A quantidade de existentes pela de disponíveis"
+  }, {
+    l: "B",
+    t: "A quantidade de disponíveis pela de existentes"
+  }, {
+    l: "C",
+    t: "A quantidade de indisponíveis pela de existentes"
+  }, {
+    l: "D",
+    t: "A quantidade de RMC pela de SMNC"
+  }, {
+    l: "E",
+    t: "A quantidade de disponíveis pela de indisponíveis"
+  }],
+  r: "B",
+  d: "IDMO=disponibilidade sobre o total",
+  dm: "IDMO=D÷E. Quantos prontos de todos que tenho."
+}, {
+  id: 2,
+  p: "Para preenchimento do IDMO, o material necessário aos meios indisponíveis deve estar em quais documentos encaminhados ao CMatFN?",
+  a: [{
+    l: "A",
+    t: "Apenas no SINGRA"
+  }, {
+    l: "B",
+    t: "Apenas no SisCoMat"
+  }, {
+    l: "C",
+    t: "Nas RMC constantes no SINGRA e na SMNC"
+  }, {
+    l: "D",
+    t: "No Anexo A e no CMatBoTec"
+  }, {
+    l: "E",
+    t: "No QCNM e no IDMO"
+  }],
+  r: "C",
+  d: "RMC no SINGRA + SMNC",
+  dm: "RMC(SINGRA)+SMNC = os dois juntos para o CMatFN."
+}, {
+  id: 3,
+  p: "São áreas em terra para concentrar suprimentos, equipamentos, instalações e pessoal para ApSvCmb de um GptOpFuzNav:",
+  a: [{
+    l: "A",
+    t: "ILS"
+  }, {
+    l: "B",
+    t: "ApSvCmb"
+  }, {
+    l: "C",
+    t: "AApD"
+  }, {
+    l: "D",
+    t: "ApSv"
+  }, {
+    l: "E",
+    t: "AApL"
+  }],
+  r: "E",
+  d: "AApL = Área de Apoio Logístico",
+  dm: "AApL=conceito-mãe. ILS é UM dos 4 tipos. ApSvCmb é função, não área."
+}, {
+  id: 4,
+  p: "Qual a densidade de viaturas na Coluna CERRADA?",
+  a: [{
+    l: "A",
+    t: "1 a 5 viaturas por km"
+  }, {
+    l: "B",
+    t: "6 a 14 viaturas por km"
+  }, {
+    l: "C",
+    t: "15 a 50 viaturas por km"
+  }, {
+    l: "D",
+    t: "51 a 100 viaturas por km"
+  }, {
+    l: "E",
+    t: "100 a 200 viaturas por km"
+  }],
+  r: "C",
+  d: "Cerrada = 15 a 50 vtr/km",
+  dm: "Cerrada=15-50. Aberta=6-14. Infiltração=1-5. CAI=densidades caindo."
+}, {
+  id: 5,
+  p: "O Alto TÉCNICO é realizado:",
+  a: [{
+    l: "A",
+    t: "A cada 2 horas de marcha, com duração de 15 minutos"
+  }, {
+    l: "B",
+    t: "Após 45 minutos de marcha, com duração de 10 minutos"
+  }, {
+    l: "C",
+    t: "Após 45 minutos de marcha, com duração de 15 minutos"
+  }, {
+    l: "D",
+    t: "Para refeições, com duração de 30min a 1h"
+  }, {
+    l: "E",
+    t: "A cada hora, com duração de 5 minutos"
+  }],
+  r: "C",
+  d: "Técnico: 45min→15min (inspeção MNT)",
+  dm: "45min→15min. Periódico=2h→10min. Grande=refeição/30-60min."
+}, {
+  id: 6,
+  p: "Qual forma de estacionamento proporciona MAIOR conforto e proteção ao material?",
+  a: [{
+    l: "A",
+    t: "Bivaque"
+  }, {
+    l: "B",
+    t: "Acampamento"
+  }, {
+    l: "C",
+    t: "Acantonamento"
+  }, {
+    l: "D",
+    t: "Instalação Logística Sumária"
+  }, {
+    l: "E",
+    t: "Zona de Estacionamento"
+  }],
+  r: "C",
+  d: "Acantonamento = edificações = melhor",
+  dm: "Acantonamento=casas=melhor. Bivaque=céu aberto=mais frequente no Brasil."
+}, {
+  id: 7,
+  p: "Itens de SUBSISTÊNCIA (água e rações) são:",
+  a: [{
+    l: "A",
+    t: "Classe II"
+  }, {
+    l: "B",
+    t: "Classe III"
+  }, {
+    l: "C",
+    t: "Classe IV"
+  }, {
+    l: "D",
+    t: "Classe I"
+  }, {
+    l: "E",
+    t: "Classe V"
+  }],
+  r: "D",
+  d: "Classe I = subsistência",
+  dm: "Classe I = 1 = Alimento. Você come PRIMEIRO!"
+}, {
+  id: 8,
+  p: "A continuidade da Política de Manutenção sustenta-se na atuação conjunta de:",
+  a: [{
+    l: "A",
+    t: "CMatFN e CRepSupEspCFN"
+  }, {
+    l: "B",
+    t: "CMatFN e das OM detentoras de meios operativos"
+  }, {
+    l: "C",
+    t: "FFE e das OM Distritais"
+  }, {
+    l: "D",
+    t: "SINGRA e SisCoMat"
+  }, {
+    l: "E",
+    t: "BtlLogFuzNav e BtlVtrAnf"
+  }],
+  r: "B",
+  d: "CMatFN + OM detentoras = Política MNT",
+  dm: "CMatFN(centro) + OM detentoras(unidades) = parceria para meios operativos."
+}, {
+  id: 9,
+  p: "Na Marcha por Escalões, qual variante realiza no MENOR TEMPO POSSÍVEL?",
+  a: [{
+    l: "A",
+    t: "Distância Mínima"
+  }, {
+    l: "B",
+    t: "Ponto Intermediário de Embarque"
+  }, {
+    l: "C",
+    t: "Distância Mais Eficiente"
+  }, {
+    l: "D",
+    t: "Coluna Cerrada"
+  }, {
+    l: "E",
+    t: "Infiltração"
+  }],
+  r: "C",
+  d: "Eficiente = menor tempo, ninguém espera",
+  dm: "Eficiente=encontro simultâneo. Tropa e viaturas chegam juntos=menor tempo."
+}, {
+  id: 10,
+  p: "Os Movimentos TÁTICOS são executados particularmente:",
+  a: [{
+    l: "A",
+    t: "Na Zona de Administração (ZA)"
+  }, {
+    l: "B",
+    t: "Nas bases e aquartelamentos"
+  }, {
+    l: "C",
+    t: "Na Zona de Combate (ZC)"
+  }, {
+    l: "D",
+    t: "Na AApP"
+  }, {
+    l: "E",
+    t: "Na Zona de Reunião"
+  }],
+  r: "C",
+  d: "Táticos = ZC / Preparatórios = ZA",
+  dm: "Tático→ZC. Preparatório→ZA. TC=Tático na Zona de Combate."
+}, {
+  id: 11,
+  p: "A função logística que conserva e restitui material a condições operativas é:",
+  a: [{
+    l: "A",
+    t: "Abastecimento"
+  }, {
+    l: "B",
+    t: "Transporte"
+  }, {
+    l: "C",
+    t: "Saúde"
+  }, {
+    l: "D",
+    t: "Manutenção e Salvamento"
+  }, {
+    l: "E",
+    t: "Desenvolvimento de Bases"
+  }],
+  r: "D",
+  d: "MNT e Salvamento = conservar/restaurar",
+  dm: "MNT+SALV: Manutenção conserva, Salvamento resgata."
+}, {
+  id: 12,
+  p: "A fase básica MAIS IMPORTANTE do Ciclo Logístico é:",
+  a: [{
+    l: "A",
+    t: "Obtenção"
+  }, {
+    l: "B",
+    t: "Distribuição"
+  }, {
+    l: "C",
+    t: "Determinação de Necessidades"
+  }, {
+    l: "D",
+    t: "Controle"
+  }, {
+    l: "E",
+    t: "Previsão"
+  }],
+  r: "C",
+  d: "Determinação de Necessidades = mais importante",
+  dm: "Sem saber o que precisa, de que adianta obter ou distribuir?"
+}];
+
+// ===== CERTO OU ERRADO =====
+const CE = [{
+  id: 1,
+  a: "A logística, em seu conceito mais amplo, tem como propósito OBTER e DISTRIBUIR às Forças Armadas os recursos de pessoal, material e serviços.",
+  r: "certo",
+  j: "Definição direta do manual.",
+  d: "Conceito central da logística",
+  dm: "LOG = OBTER + DISTRIBUIR. Equação fundamental!"
+}, {
+  id: 2,
+  a: "O ApSvCmb é uma função idêntica à logística militar, apenas executada em ambiente de combate.",
+  r: "errado",
+  j: "O ApSvCmb é um CASO ESPECIAL da logística militar, não idêntico. É proporcionado por PARCELA da Força ao conjunto.",
+  d: "ApSvCmb = caso especial, não idêntico",
+  dm: "ApSvCmb não é igual à Logística. É uma parte especial orientada para o combate."
+}, {
+  id: 3,
+  a: "O IDMO destina-se a apresentar os meios disponíveis, destacando a necessidade para atender à FER.",
+  r: "certo",
+  j: "Definição direta do Cap 3.",
+  d: "IDMO = radar de disponibilidade para FER",
+  dm: "IDMO = radar de disponibilidade. Mostra quem está pronto para a FER."
+}, {
+  id: 4,
+  a: "O IDMO, QNSI e os indicadores devem ser encaminhados ao CMatFN anualmente.",
+  r: "errado",
+  j: "A periodicidade é MENSAL, não anual. Anual é apenas a atualização de Necessidades Mínimas (em julho).",
+  d: "Periodicidade = MENSAL (não anual)!",
+  dm: "Todo mês, o CMatFN quer saber! Anual = só Necessidades Mínimas em julho."
+}, {
+  id: 5,
+  a: "A Coluna Cerrada é a formação mais indicada para movimentos diurnos sem escolta aérea.",
+  r: "errado",
+  j: "A Coluna ABERTA é indicada para movimentos diurnos sem escolta aérea. A Cerrada é normal em marchas NOTURNAS.",
+  d: "Cerrada=noturna / Aberta=diurna sem escolta",
+  dm: "Cerrada de noite, Aberta de dia. Aberta=mais esparsa=menos alvo para aviação."
+}, {
+  id: 6,
+  a: "O Alto Periódico realiza-se a cada duas horas de marcha, com a duração de dez minutos.",
+  r: "certo",
+  j: "Definição direta do manual.",
+  d: "Periódico: 2h→10min",
+  dm: "2h→10min. Periódico=descanso. Técnico=45min→15min (inspeção)."
+}, {
+  id: 7,
+  a: "A AApZDbq é organizada para apoiar elementos de assalto desembarcados por helicópteros.",
+  r: "certo",
+  j: "Definição direta do manual.",
+  d: "AApZDbq = Zona de Desembarque de Helicópteros",
+  dm: "ZDbq=Z de helicóptero. Instalações mínimas e limitadas possibilidades."
+}, {
+  id: 8,
+  a: "O processo de Distribuição por PONTO exige que a agência responsável vá até o elemento apoiado entregar o suprimento.",
+  r: "errado",
+  j: "Na distribuição por PONTO, é o elemento apoiado que vai BUSCAR. Na por UNIDADE, a agência ENTREGA.",
+  d: "Ponto=apoiado busca / Unidade=agência entrega",
+  dm: "Ponto=Pickup (você vem). Unidade=Delivery (entregamos). NUNCA confundir!"
+}, {
+  id: 9,
+  a: "A Infiltração é a formação de marcha que oferece máximo controle e excelente sigilo.",
+  r: "errado",
+  j: "A Infiltração oferece máximo SIGILO e proteção passiva, mas controle FRACO.",
+  d: "Infiltração = sigilo excelente + controle FRACO",
+  dm: "Infiltração=invisível mas descontrolado. Sigilo e controle são opostos."
+}, {
+  id: 10,
+  a: "A fase de OBTENÇÃO do Ciclo Logístico é considerada a mais importante por servir de fundamento às demais.",
+  r: "errado",
+  j: "A mais importante é DETERMINAÇÃO DE NECESSIDADES.",
+  d: "Mais importante = Determinação de Necessidades",
+  dm: "Sem saber o que precisa, de que adianta obter? Determinação=base de tudo."
+}];
+
+// ===== COMPLETE LACUNAS =====
+const GAP = [{
+  id: 1,
+  frase: "Toda realimentação está fundamentada em quadros, denominados de ________ (IDMO) e ________.",
+  res: ["Índice de Disponibilidade de Meios Operativos", "Quadro de Necessidade de Sobressalentes para Aplicação Imediata (QNSI)"],
+  d: "IDMO + QNSI",
+  dm: "IDMO(disponibilidade) + QNSI(peças urgentes) = os dois quadros fundamentais."
+}, {
+  id: 2,
+  frase: "No preenchimento do QNSI, o conceito de ________ é a ocorrência que impede o funcionamento, e o de ________ é a ocorrência que não impede, mas pode acarretar indisponibilidade.",
+  res: ["Falha", "Defeito"],
+  d: "Falha=impede / Defeito=não impede",
+  dm: "Falha=Fechou. Defeito=Doente mas funciona."
+}, {
+  id: 3,
+  frase: "A Coluna Cerrada tem densidade variando de ________ a ________ viaturas por quilômetro.",
+  res: ["15", "50"],
+  d: "Cerrada = 15 a 50 vtr/km",
+  dm: "Cerrada:15-50. Aberta:6-14. Infiltração:1-5."
+}, {
+  id: 4,
+  frase: "O Alto Técnico é realizado após os primeiros ________ minutos de marcha, com duração de ________ minutos.",
+  res: ["45", "15"],
+  d: "Alto Técnico: 45min→15min",
+  dm: "45→15: Técnico é rápido. Periódico: 2h→10min."
+}, {
+  id: 5,
+  frase: "Os escalões de manutenção são: ________, ________, ________ e ________.",
+  res: ["Primeiro (operadores orgânicos)", "Segundo (BtlLogFuzNav)", "Terceiro (OMPS)", "Quarto (fabricante)"],
+  d: "1=operador, 2=BtlLog, 3=OMPS, 4=Fabricante",
+  dm: "1234 escada: começa com quem usa, termina com quem fabricou."
+}, {
+  id: 6,
+  frase: "As seis funções logísticas da MB são: Abastecimento, ________, Transporte, ________, Pessoal e Desenvolvimento de Bases.",
+  res: ["Saúde", "Manutenção e Salvamento"],
+  d: "Saúde e Manutenção e Salvamento",
+  dm: "ASTMPD. Complete com Saúde e Mnt+Salv."
+}, {
+  id: 7,
+  frase: "As três fases básicas do Ciclo Logístico são: ________, ________ e ________.",
+  res: ["Determinação de Necessidades", "Obtenção", "Distribuição"],
+  d: "Det.Nec.→Obtenção→Distribuição",
+  dm: "DOD = Determino, Obtenho, Distribuo. Nessa ordem."
+}, {
+  id: 8,
+  frase: "Na Coluna Aberta, a densidade varia de ________ a ________ viaturas por quilômetro.",
+  res: ["6", "14"],
+  d: "Aberta: 6-14 vtr/km",
+  dm: "Aberta=6-14. Cerrada=15-50. Infiltração=1-5."
+}];
+
+// ===== DEFINIÇÕES =====
+const DEF = [{
+  id: 1,
+  t: "IDMO",
+  def: "Índice de Disponibilidade de Meios Operativos. IDMO = Disponíveis ÷ Existentes. Recebe grau de sigilo CONFIDENCIAL quando preenchido.",
+  gr: "IDMO = Disponíveis ÷ Existentes (CONFIDENCIAL)",
+  d: "Fórmula e sigilo",
+  dm: "IDMo=D÷E. Confidencial! Quantos prontos de todos que tenho?"
+}, {
+  id: 2,
+  t: "AApL",
+  def: "Área de Apoio Logístico — áreas em terra para concentrar suprimentos, equipamentos, instalações e pessoal necessários ao ApSvCmb de um GptOpFuzNav.",
+  gr: "Áreas em terra para suporte logístico ao GptOpFuzNav",
+  d: "AApL tem 4 tipos: AApP, AApZDbq, AApSvCmb e ILS",
+  dm: "AApL=ponto de apoio em terra. 4 variantes do litoral ao interior."
+}, {
+  id: 3,
+  t: "ApSvCmb",
+  def: "Apoio proporcionado por parcela de um GptOpFuzNav ao conjunto, por meio das funções logísticas essenciais à sua manutenção em combate. É um caso especial da logística militar.",
+  gr: "Parte do GptOpFuzNav apoia o todo em combate",
+  dm: "Parte apoia o TODO em combate. Interno à ForDbq. Orientado para o combate."
+}, {
+  id: 4,
+  t: "Coluna Cerrada",
+  def: "Formação compacta com distância MÍNIMA de segurança. Densidade: 15-50 vtr/km. Distância ≈ 1,5 × velocidade (km/h) em metros. Normal em marchas noturnas.",
+  gr: "Compacta, 15-50 vtr/km, noturna, 1.5×vel(km/h)=dist(m)",
+  dm: "Cerrada=compacta. Normal à noite. 1.5×vel(km/h)=dist(m)."
+}, {
+  id: 5,
+  t: "Falha (QNSI)",
+  def: "Ocorrência no item que IMPEDE o seu funcionamento. Diferente do Defeito, que não impede mas pode causar indisponibilidade futura.",
+  gr: "Ocorrência que IMPEDE o funcionamento",
+  dm: "Falha=Fechou. O item para completamente. Defeito=Desgastou, pode parar depois."
+}, {
+  id: 6,
+  t: "ILS",
+  def: "Instalação Logística Sumária — recursos do ApSvCmb em bases MÍNIMAS, nos escalões Unidade e Subunidade, para apoio contínuo e PRESERVAR A MOBILIDADE.",
+  gr: "Bases mínimas nos menores escalões — mobilidade",
+  dm: "ILS=Light and Small. Menor e mais móvel das AApL."
+}, {
+  id: 7,
+  t: "Acantonamento",
+  def: "Forma de estacionamento em que a tropa ocupa edificações permanentes (casas, edifícios). A MELHOR forma pela comodidade e proteção ao material. Espaço mínimo: 2m²/homem e 12m³ de ar.",
+  gr: "Melhor estacionamento — edificações, 2m²/hom, 12m³ ar",
+  dm: "Acantonamento=Hotel. 2m²/hom, 12m³ ar. Setores por subunidade."
+}, {
+  id: 8,
+  t: "EPA",
+  def: "Estrada Principal de Abastecimento — sistema viário selecionado pelo OLog para apoiar os subordinados. Maior prioridade de conservação de engenharia e controle de trânsito.",
+  gr: "Via logística principal, máxima prioridade",
+  dm: "EPA=Estrada Principal Apoio. OLog seleciona, Eng conserva, PM controla."
+}, {
+  id: 9,
+  t: "Gráfico de Marcha",
+  def: "Diagrama de tempo (eixo X) e espaço (eixo Y) para planejamento e controle das marchas. Mostra a testa e cauda de cada grupamento a qualquer momento.",
+  gr: "Diagrama tempo×espaço para controle de marchas",
+  dm: "GPS manual em papel milimetrado. Eixo X=tempo, Y=espaço."
+}, {
+  id: 10,
+  t: "Nível Máximo de Estocagem",
+  def: "Limite máximo dos estoques nos depósitos. Corresponde à soma do Nível Mínimo com o Nível Operativo. Fixado pelo escalão superior para preservar a mobilidade.",
+  gr: "Nível Mín + Nível Operativo = teto (preserva mobilidade)",
+  dm: "Máximo=teto. Estocar demais=perder mobilidade."
+}, {
+  id: 11,
+  t: "Alto Técnico",
+  def: "Tipo de alto realizado após os primeiros 45 minutos de marcha, com duração de 15 minutos, para inspeção de manutenção de 1° escalão das viaturas.",
+  gr: "45min de marcha → 15min de pausa (inspeção MNT)",
+  dm: "Técnico=inspeção. 45→15. Não confundir com Periódico (2h→10min)."
+}, {
+  id: 12,
+  t: "Logística Militar",
+  def: "Conjunto de atividades para apoiar a criação, movimentação, engajamento, desengajamento e desativação de Forças operativas, com base nas estimativas de necessidades por elas formuladas.",
+  gr: "Atividades para todo o ciclo de vida das Forças operativas",
+  dm: "Logística=do berço ao túmulo das Forças. Criação→Desativação."
+}];
+
+// ===== CORRELACIONE =====
+const COR = [{
+  id: 1,
+  titulo: "Tipos de AApL",
+  items: [{
+    n: 1,
+    esq: "AApP",
+    dir: "Área junto à Praia de Desembarque, operada pelo Destacamento de Praia"
+  }, {
+    n: 2,
+    esq: "AApZDbq",
+    dir: "Área para apoiar elementos desembarcados por helicópteros"
+  }, {
+    n: 3,
+    esq: "AApSvCmb",
+    dir: "Área principal em terra com suprimentos e pessoal para a ForDbq"
+  }, {
+    n: 4,
+    esq: "ILS",
+    dir: "Bases mínimas nos escalões Unidade/Subunidade — preserva mobilidade"
+  }, {
+    n: 0,
+    esq: "—",
+    dir: "Área de Apoio Aeroportuária (AApAer) — NÃO existe nesta classificação"
+  }],
+  gabarito: {
+    1: 1,
+    2: 2,
+    3: 3,
+    4: 4
+  },
+  d: "4 tipos de AApL: Praia, ZDbq, SvCmb, ILS",
+  dm: "Praia→ZDbq→SvCmb→ILS: do litoral ao interior. ILS=menor escalão."
+}, {
+  id: 2,
+  titulo: "Classes de Suprimentos",
+  items: [{
+    n: 1,
+    esq: "Classe I",
+    dir: "Itens de subsistência, incluindo água e rações operacionais"
+  }, {
+    n: 2,
+    esq: "Classe II",
+    dir: "Itens de natureza geral constantes de Listas de Dotação (armamentos, viaturas)"
+  }, {
+    n: 3,
+    esq: "Classe III",
+    dir: "Itens relativos a combustíveis e lubrificantes, exceto de aviação"
+  }, {
+    n: 4,
+    esq: "Classe IV",
+    dir: "Itens de natureza geral não constantes de Listas de Dotação (construção)"
+  }, {
+    n: 5,
+    esq: "Classe V",
+    dir: "Itens relativos à munição para armamentos, exceto de aviação"
+  }, {
+    n: 0,
+    esq: "—",
+    dir: "Medicamentos e equipamentos odontológicos — pertence à Classe II, não é classe separada"
+  }],
+  gabarito: {
+    1: 1,
+    2: 2,
+    3: 3,
+    4: 4,
+    5: 5
+  },
+  d: "I=alim, II=dotação, III=comb, IV=constr, V=munição",
+  dm: "I Comi 2 Equiptos, 3 Combustíveis, 4 Constrói, 5 Mato."
+}, {
+  id: 3,
+  titulo: "Formações de Marcha",
+  items: [{
+    n: 1,
+    esq: "Coluna Cerrada",
+    dir: "15-50 vtr/km, distância mínima, normal em marchas noturnas"
+  }, {
+    n: 2,
+    esq: "Coluna Aberta",
+    dir: "6-14 vtr/km, distância constante, indicada para movimentos diurnos"
+  }, {
+    n: 3,
+    esq: "Infiltração",
+    dir: "1-5 vtr/km, máximo sigilo e proteção passiva, controle fraco"
+  }, {
+    n: 0,
+    esq: "—",
+    dir: "Coluna Dupla — formação de parada, não de deslocamento motorizado"
+  }],
+  gabarito: {
+    1: 1,
+    2: 2,
+    3: 3
+  },
+  d: "Cerrada=noite/Aberta=dia/Infiltração=sigilo",
+  dm: "CAI = Cerrada, Aberta, Infiltração. Densidade cai de 50 para 5 vtr/km."
+}, {
+  id: 4,
+  titulo: "Tipos de Alto",
+  items: [{
+    n: 1,
+    esq: "Alto Técnico",
+    dir: "Após 45min de marcha, dura 15min — inspeção MNT 1° escalão"
+  }, {
+    n: 2,
+    esq: "Alto Periódico",
+    dir: "A cada 2h de marcha, dura 10min — descanso da tropa"
+  }, {
+    n: 3,
+    esq: "Grande Alto",
+    dir: "30min-1h — refeições e abastecimento de viaturas"
+  }, {
+    n: 0,
+    esq: "—",
+    dir: "Alto Tático — NÃO existe essa denominação nas marchas motorizadas"
+  }],
+  gabarito: {
+    1: 1,
+    2: 2,
+    3: 3
+  },
+  d: "T=45/15 · P=2h/10 · G=refeição",
+  dm: "TPG: Técnico(45→15), Periódico(2h→10), Grande(30-60min)."
+}, {
+  id: 5,
+  titulo: "Funções Logísticas e Atividades",
+  items: [{
+    n: 1,
+    esq: "Abastecimento",
+    dir: "Desembarque de suprimentos, controle e distribuição, coleta de salvados"
+  }, {
+    n: 2,
+    esq: "Saúde",
+    dir: "Medicina preventiva, reabilitação, evacuação médica"
+  }, {
+    n: 3,
+    esq: "Transporte",
+    dir: "Movimentação de pessoal e carga, operação e controle dos meios"
+  }, {
+    n: 4,
+    esq: "Manutenção e Salvamento",
+    dir: "Manutenção planejada/corretiva, reboque, desatolamento, reflutuação"
+  }, {
+    n: 5,
+    esq: "Pessoal",
+    dir: "Controle de efetivo, recompletamento, PG, sepultamento, moral"
+  }, {
+    n: 0,
+    esq: "—",
+    dir: "Inteligência logística — NÃO é uma função logística da MB"
+  }],
+  gabarito: {
+    1: 1,
+    2: 2,
+    3: 3,
+    4: 4,
+    5: 5
+  },
+  d: "Cada função tem atividades específicas",
+  dm: "ASTMPD: Abast, Saúde, Trnp, MntSlv, Pessoal, DesBase."
+}];
+
+// ===== CITE =====
+const CITE = [{
+  id: 1,
+  p: "Cite as 6 Funções Logísticas da MB:",
+  itens: ["Abastecimento", "Saúde", "Transporte", "Manutenção e Salvamento", "Pessoal", "Desenvolvimento de Bases"],
+  gr: "ASTMPD",
+  dm: "A Saúde Transporta Material Para o Desenvolvimento."
+}, {
+  id: 2,
+  p: "Cite os 4 tipos de AApL:",
+  itens: ["AApP (Área de Apoio de Praia)", "AApZDbq (Área de Apoio de Zona de Desembarque)", "AApSvCmb (Área de Apoio de Serviços ao Combate)", "ILS (Instalação Logística Sumária)"],
+  gr: "AApP, AApZDbq, AApSvCmb, ILS",
+  dm: "Praia→ZDbq→SvCmb→ILS. Do litoral ao interior."
+}, {
+  id: 3,
+  p: "Cite as 3 formas de estacionamento:",
+  itens: ["Acantonamento (edificações permanentes — melhor conforto)", "Acampamento (barracas)", "Bivaque (ao ar livre — mais frequente no Brasil)"],
+  gr: "Acantonamento, Acampamento, Bivaque",
+  dm: "AAB: A(hotel), A(barraca), B(céu). Melhor→pior: Acant>Acampa>Bivaque."
+}, {
+  id: 4,
+  p: "Cite as 3 formações de marcha e suas densidades:",
+  itens: ["Coluna Cerrada: 15 a 50 vtr/km", "Coluna Aberta: 6 a 14 vtr/km", "Infiltração: 1 a 5 vtr/km"],
+  gr: "Cerrada(15-50), Aberta(6-14), Infiltração(1-5)",
+  dm: "CAI com densidades 50→14→5."
+}, {
+  id: 5,
+  p: "Cite os 3 tipos de Alto e suas características:",
+  itens: ["Alto Técnico: após 45min de marcha → 15min (inspeção MNT)", "Alto Periódico: a cada 2h → 10min (descanso)", "Grande Alto: 30min-1h (refeições e abastecimento)"],
+  gr: "T(45/15), P(2h/10), G(30-60min)",
+  dm: "TPG: Técnico=45→15, Periódico=2h→10, Grande=30-60min."
+}];
+
+// ===== LISTE =====
+const LIST = [{
+  id: 1,
+  p: "Liste os 8 Princípios Básicos da Logística:",
+  itens: ["Interdependência", "Objetivo", "Limites", "Coordenação", "Comando", "Previsão", "Economia de Esforço", "Subordinação e Apoio"],
+  gr: "IO LC C P ES (8 princípios)",
+  dm: "IO LC C PES = Interdep, Objetivo, Limites, Coord, Cmdo, Previsão, Econ, Subord."
+}, {
+  id: 2,
+  p: "Liste as 3 fases do Ciclo Logístico e indique a mais importante:",
+  itens: ["1ª - Determinação de Necessidades (MAIS IMPORTANTE — fundamento das demais)", "2ª - Obtenção", "3ª - Distribuição"],
+  gr: "Det.Nec.(+imp)→Obtenção→Distribuição",
+  dm: "DOD: Determino, Obtenho, Distribuo. Determinação=base de tudo."
+}, {
+  id: 3,
+  p: "Liste pelo menos 6 instalações de apoio nas AApL:",
+  itens: ["Posto de Distribuição (PDistr)", "Posto de Remuniciamento (PRem)", "Posto de Suprimento de Água (PSupAg)", "Posto de Socorro (PS)", "Posto de Evacuação (PEv)", "Hospital de Campanha (HCmp)", "Posto de Coleta de Mortos (PColMor)", "Posto de Coleta de Salvados (PColSlv)", "Posto de Coleta de Extraviados (PColExtv)"],
+  gr: "PDistr, PRem, PSupAg, PS, PEv, HCmp, PColMor, PColSlv, PColExtv",
+  dm: "D-R-SA-S-Ev-Hsp-Mor-Slv-Extv: cada sigla é uma instalação."
+}, {
+  id: 4,
+  p: "Liste as 3 variantes da Marcha por Escalões:",
+  itens: ["Distância Mínima: menor percurso a pé, sem margem de segurança de fim", "Distância Mais Eficiente: menor tempo total, ninguém espera ninguém", "Ponto Intermediário de Embarque: PEmbq intermediário, com margem de segurança"],
+  gr: "MEI: Mínima, Eficiente, Intermediária",
+  dm: "MEI: Mínima(menos a pé), Eficiente(menos tempo), Intermediária(entre os dois)."
+}, {
+  id: 5,
+  p: "Liste 5 características desejáveis de uma Zona de Estacionamento:",
+  itens: ["I - Cobertas e abrigos contra ataque e observação aérea", "II - Espaço para dispersão de pessoal e viaturas", "III - Proximidade a fonte de água", "IV - Rede de estradas ou caminhos", "V - Terreno consistente para movimento de viaturas", "VI - Obstáculos naturais contra ataque blindado", "VII - Condições de higiene e salubridade"],
+  gr: "7 características: cobertas, espaço, água, estradas, terreno, obstáculos, higiene",
+  dm: "CEAETOH = Cobertas, Espaço, Água, Estradas, Terreno, Obstáculos, Higiene."
+}];
+
+// ===== V OU F =====
+const VF = [{
+  id: 1,
+  titulo: "Controle e Distribuição de Suprimentos",
+  itens: [{
+    id: "a",
+    afirm: "Na distribuição por unidade, o elemento apoiado vai buscar seus suprimentos na instalação responsável.",
+    r: "F",
+    d: "Por PONTO=apoiado busca. Por UNIDADE=agência entrega.",
+    dm: "Ponto=Pickup, Unidade=Delivery. NUNCA confundir!"
+  }, {
+    id: "b",
+    afirm: "As normas de controle e arquivamento devem ser complexas para garantir maior segurança.",
+    r: "F",
+    d: "Devem ser SIMPLES — prover informações essenciais rapidamente.",
+    dm: "Simples=rápido e direto. Complexidade prejudica a eficiência logística."
+  }, {
+    id: "c",
+    afirm: "O fluxo de suprimentos deve ser, preferencialmente, direto da fonte ao consumidor.",
+    r: "V",
+    d: "Minimizar manuseio pelos escalões intermediários.",
+    dm: "Direto=mais rápido e menos perdas. Evitar escalões intermediários."
+  }, {
+    id: "d",
+    afirm: "Os níveis de estoque preconizados devem exceder as quantidades necessárias para garantir que nunca falte material.",
+    r: "F",
+    d: "NÃO devem exceder — para não limitar a mobilidade.",
+    dm: "Estoque excessivo=perda de mobilidade."
+  }, {
+    id: "e",
+    afirm: "A distribuição por ponto é muito empregada nos estágios iniciais de uma OpAnf, pois o DP ainda não dispõe de viaturas.",
+    r: "V",
+    d: "DP nos estágios iniciais não tem viaturas para fazer entregas.",
+    dm: "DP sem viaturas=quem precisa vai buscar (ponto)."
+  }, {
+    id: "f",
+    afirm: "As normas de controle devem ser simples a fim de maximizar a relação fornecimento/demanda.",
+    r: "F",
+    d: "O objetivo da simplicidade é prover informações essenciais rapidamente, não maximizar relação fornecimento/demanda.",
+    dm: "Simplicidade serve à rapidez e clareza, não a uma relação específica."
+  }]
+}, {
+  id: 2,
+  titulo: "Princípios e Atributos da Logística",
+  itens: [{
+    id: "a",
+    afirm: "A logística está relacionada com a movimentação e manutenção de Forças de forma contínua e sustentada, na paz e na guerra.",
+    r: "V",
+    d: "Definição exata do manual.",
+    dm: "Paz E Guerra=logística nunca para. Contínua e sustentada."
+  }, {
+    id: "b",
+    afirm: "O Princípio da Previsão indica que a logística deve apenas atender ao que é exigido no momento presente.",
+    r: "F",
+    d: "Previsão exige antecipar FUTURAS exigências. Toda ação logística está projetada para o futuro.",
+    dm: "Logístico=futurista. Deve PREVER demandas. Se não previu, falhou."
+  }, {
+    id: "c",
+    afirm: "A Segurança, como atributo essencial, é conhecida no ApSvCmb também como Sobrevivência.",
+    r: "V",
+    d: "Definição exata do manual.",
+    dm: "Segurança=Sobrevivência no ApSvCmb. Mesmo conceito, vocabulários diferentes."
+  }, {
+    id: "d",
+    afirm: "O Princípio da Economia de Esforço indica que não deve haver escassez de recursos.",
+    r: "F",
+    d: "NUNCA haverá recursos suficientes. A Economia de Esforço existe para usar o escasso da melhor forma.",
+    dm: "Escassez é a regra! Economia de Esforço=usar o escasso da melhor maneira."
+  }]
+}, {
+  id: 3,
+  titulo: "Marchas e Estacionamentos",
+  itens: [{
+    id: "a",
+    afirm: "Em marchas de menos de 3 horas, não há necessidade de altos, salvo em condições difíceis ou de escurecimento.",
+    r: "V",
+    d: "Regra geral: marcha <3h, sem altos necessários.",
+    dm: "<3h=sem altos. Mais que 3h→Técnico(45min) e Periódico(2h)."
+  }, {
+    id: "b",
+    afirm: "A Turma de Sapadores é responsável por reconhecer e balizar o itinerário de marcha.",
+    r: "F",
+    d: "TurRec reconhece. TuSap executa obras. TuTr baliza.",
+    dm: "TurRec=reconhece. TuTr=baliza. TuSap=obras. Cada turma tem sua função!"
+  }, {
+    id: "c",
+    afirm: "O Grande Alto deve sempre coincidir com as horas de calor mais intenso ou com as horas normais de refeição.",
+    r: "V",
+    d: "Definição exata do manual.",
+    dm: "Grande Alto+calor/refeição=economia de tempo e melhor desempenho."
+  }, {
+    id: "d",
+    afirm: "No acantonamento, o espaço mínimo por homem deve ser de 4m² e 20m³ de ar.",
+    r: "F",
+    d: "O espaço mínimo é de 2m² e 12m³ de ar por homem.",
+    dm: "2m² e 12m³. Lembre: 2 (não 4). 12m³ (não 20m³)."
+  }]
+}];
+
+// ===== COMPLETE =====
+const COMP = [{
+  id: 1,
+  t: "O salvamento consiste em...",
+  gab: "combater incêndios, controlar avarias, rebocar e, no caso do material específico dos GptOpFuzNav, desatolar viaturas e equipamentos, reflutuar VtrAnf e recuperar suas cargas.",
+  gr: "Incêndios+avarias+reboque+desatolamento+reflutuação",
+  dm: "Salva-IRe-Des-Re: Incêndios, Reboque, Desatolamento, Reflutuação."
+}, {
+  id: 2,
+  t: "A AApP é...",
+  gab: "área junto a uma Praia de Desembarque (PDbq), organizada e operada inicialmente pelo Destacamento de Praia (DP), contendo facilidades para o desembarque de tropas e material e para apoio às Forças em terra, bem como para a evacuação de baixas, PG e material capturado.",
+  gr: "Área na PDbq, operada pelo DP, para desembarque e evacuação",
+  dm: "AApP=porta de entrada. DP opera. Entra material/tropa, sai baixa/PG/capturado."
+}, {
+  id: 3,
+  t: "O Índice de Disponibilidade de Controle é calculado como...",
+  gab: "o Índice de Disponibilidade Adequada acrescido de uma margem de segurança de dez por cento de seu valor, arredondado em número inteiro.",
+  gr: "Controle = Adequada + 10% (arredondado para cima)",
+  dm: "+10% de segurança. Abaixo disso=área crítica=ação urgente."
+}, {
+  id: 4,
+  t: "A Coluna Cerrada é uma formação onde...",
+  gab: "as viaturas são regularmente separadas por distância mínima de segurança. A distância entre as viaturas é, em metros, o dobro da velocidade em milhas por hora, ou o produto do fator 1,5 pela velocidade em quilômetros por hora.",
+  gr: "Distância mínima: 1,5×vel(km/h) metros",
+  dm: "1.5×km/h=metros. Ex: 40km/h→60m. Compacto e excelente controle."
+}, {
+  id: 5,
+  t: "O fluxo de suprimentos deve ser...",
+  gab: "preferencialmente direto da fonte ao consumidor ou utilizador, com o mínimo de manuseio pelos escalões intermediários.",
+  gr: "Direto da fonte ao consumidor, mínimo de intermediários",
+  dm: "Menos mãos, mais rápido. Cada escalão intermediário=atraso+risco de perda."
+}];
+
+// ===== QUESTÕES PADRÃO =====
+const QP = [{
+  id: 1,
+  tipo: "Sigla",
+  q: "Qual é a sigla usada para Índice de Disponibilidade de Meios Operativos?",
+  r: "IDMO — Índice de Disponibilidade de Meios Operativos",
+  dm: "IDMO = Disponíveis ÷ Existentes."
+}, {
+  id: 2,
+  tipo: "Periodicidade",
+  q: "Com que periodicidade o IDMO, QNSI e os indicadores devem ser encaminhados ao CMatFN?",
+  r: "MENSALMENTE — encaminhados pela FFE, pelas OM Distritais e pelas demais OM detentoras.",
+  dm: "Todo mês, o CMatFN quer saber! Anual=só Necessidades Mínimas (julho)."
+}, {
+  id: 3,
+  tipo: "Política MNT",
+  q: "Em que a continuidade da Política de Manutenção se sustenta?",
+  r: "Na atuação CONJUNTA do CMatFN e das OM detentoras de meios operativos. Toda realimentação está fundamentada nos quadros IDMO e QNSI, além de uma relação de indicadores.",
+  dm: "CMatFN + OM detentoras = parceria contínua para manter meios operativos."
+}, {
+  id: 4,
+  tipo: "Documento",
+  q: "Qual documento estabelece os critérios de indisponibilidade para Meios Operativos?",
+  r: "CMatBoTec — Boletim Técnico do CMatFN",
+  dm: "CMatBoTec = CMatFN define o que é indisponível."
+}, {
+  id: 5,
+  tipo: "Níveis",
+  q: "Quais são os níveis de estocagem dos depósitos?",
+  r: "1. Nível Operativo: demanda entre duas recomposições\n2. Nível Mínimo (Segurança): piso que não deve ser ultrapassado\n3. Nível Máximo: Mín + Operativo (teto máximo)",
+  dm: "MOM: Mínimo(piso), Operativo(uso), Máximo(teto). Máx=Mín+Oper."
+}, {
+  id: 6,
+  tipo: "Lacuna",
+  q: "Toda realimentação está fundamentada em quadros denominados: IDMO e ______.",
+  r: "QNSI — Quadro de Necessidades de Sobressalentes para Aplicação Imediata em Meios Operativos",
+  dm: "IDMO+QNSI = os dois quadros fundamentais de realimentação."
+}, {
+  id: 7,
+  tipo: "Lacuna",
+  q: "No QNSI: ______ é a ocorrência que IMPEDE o funcionamento, e ______ é a que NÃO impede mas pode causar indisponibilidade.",
+  r: "Lacuna 1: FALHA\nLacuna 2: DEFEITO",
+  dm: "Falha=Fechou. Defeito=Doente mas funciona."
+}, {
+  id: 8,
+  tipo: "Múlt.Escolha",
+  q: "O IDMO é extraído dividindo-se:\na) existentes / disponíveis\nb) disponíveis / existentes ✓\nc) indisponíveis / existentes\nd) RMC / SMNC",
+  r: "Alternativa B — IDMO = Disponíveis ÷ Existentes",
+  dm: "Disponíveis/Existentes. Quantos prontos de todos que tenho."
+}, {
+  id: 9,
+  tipo: "Múlt.Escolha",
+  q: "Material dos meios indisponíveis deve estar em:\na) Apenas no SINGRA\nb) Apenas no SisCoMat\nc) RMC (SINGRA) e SMNC ✓\nd) Anexo A e CMatBoTec",
+  r: "Alternativa C — RMC no SINGRA + SMNC",
+  dm: "RMC(SINGRA)=catalogado. SMNC=não catalogado. OS DOIS juntos!"
+}, {
+  id: 10,
+  tipo: "Múlt.Escolha",
+  q: "Áreas em terra para concentrar suprimentos para ApSvCmb de GptOpFuzNav:\na) ILS  b) ApSvCmb  c) AApD  d) ApSv  e) AApL ✓",
+  r: "Alternativa E — AApL (Área de Apoio Logístico)",
+  dm: "AApL=conceito-mãe. ILS é UM dos 4 tipos. ApSvCmb é função, não área."
+}];
+
+// ===== SUPER RESUMO =====
+const SR = {
+  cap1: {
+    titulo: "Cap 1 — Conceitos Básicos Logísticos",
+    topicos: ["📌 LOGÍSTICA = OBTER + DISTRIBUIR recursos de pessoal, material e serviços", "📌 ApSvCmb = CASO ESPECIAL da logística, interno à ForDbq, orientado para o COMBATE", "📌 6 FUNÇÕES: Abastecimento | Saúde | Transporte | Manutenção e Salvamento | Pessoal | Des.Bases", "📌 CICLO LOGÍSTICO: Det.Necessidades (+ importante) → Obtenção → Distribuição", "📌 8 PRINCÍPIOS: Interdep | Objetivo | Limites | Coord | Cmdo | Previsão | Econ.Esforço | Subord.Apoio", "📌 5 ATRIBUTOS: Flexibilidade | Prioridade | Segurança (=Sobrevivência) | Controle | Simplicidade", "📌 Logística NÃO fabrica, NÃO utiliza — apenas obtém e distribui"]
+  },
+  cap2: {
+    titulo: "Cap 2 — ApSvCmb nas OPANF",
+    topicos: ["📌 4 TIPOS AApL: AApP(Praia) → AApZDbq(Heli) → AApSvCmb(principal) → ILS(mínimo)", "📌 CLASSES: I=Alimento | II=Dotação | III=Combustível | III-A=Comb.Avião | IV=Construção | V=Munição", "📌 NÍVEIS ESTOCAGEM: Mínimo(piso) | Operativo(uso) | Máximo(teto=Mín+Oper)", "📌 DISTRIBUIÇÃO: Por PONTO(apoiado busca) | Por UNIDADE(agência entrega)", "📌 ESCALÕES MNT: 1°(operador) → 2°(BtlLog) → 3°(OMPS) → 4°(Fabricante)", "📌 EPA = Estrada Principal Abastecimento (máx prioridade eng+PM)", "📌 LET(zero luz) / LEP(lanterna militar apenas)", "📌 Salvado=nosso material | Capturado=material inimigo"]
+  },
+  cap3: {
+    titulo: "Cap 3 — Procedimentos Política de MNT",
+    topicos: ["📌 IDMO = Disponíveis ÷ Existentes → MENSAL → CONFIDENCIAL", "📌 QNSI = sobressalentes URGENTES para disponibilizar meios (RMC+SMNC)", "📌 FALHA = IMPEDE funcionamento | DEFEITO = não impede mas pode causar parada", "📌 CMatBoTec = define critérios de indisponibilidade", "📌 Índice Adequado = % mínimo para FER | Índice Controle = Adequado +10%", "📌 Área Crítica = disponível < Controle → ação URGENTE IMEDIATA", "📌 Periodicidade MENSAL para IDMO, QNSI e indicadores ao CMatFN"]
+  },
+  cap4: {
+    titulo: "Cap 4 — Organização de Marchas Motorizadas",
+    topicos: ["📌 MOVIMENTOS: Preparatórios(ZA,sem contato) | Táticos(ZC,em combate)", "📌 3 FORMAÇÕES: Cerrada(15-50/km,noite) | Aberta(6-14/km,dia) | Infiltração(1-5/km,sigilo)", "📌 3 ALTOS: Técnico(45min→15min,mnt) | Periódico(2h→10min,desc) | Grande(30-60min,refeição)", "📌 DEST. PRECURSOR: GpItn(TurRec+TuTr+TuSap) + Gp Estac + TuInsp(retaguarda)", "📌 MARCHA ESCALÕES: Mínima(menos a pé) | Eficiente(menor tempo) | Intermediária", "📌 ESTACIONAMENTO: Acantonamento(casas,melhor) | Acampamento(barracas) | Bivaque(céu,+frequente)", "📌 ÁREA ESTAC: sem atq: 40m²/hom+80m²/vtr | com atq: 50/100m² (usa MAIOR)"]
+  }
+};
+
+// ===== RESUMO COMPLETO =====
+const RESUMO = [{
+  cap: "Capítulo 1 — Conceitos Básicos Logísticos",
+  blocos: [{
+    titulo: "Logística vs ApSvCmb",
+    texto: "LOGÍSTICA: obtém e distribui recursos de pessoal, material e serviços às FA, nas quantidades, qualidades, momento e lugar determinados.\n\nAPSVCMB: apoio por PARCELA de um GptOpFuzNav ao conjunto, por meio das funções logísticas essenciais à sua manutenção em combate. É um CASO ESPECIAL da logística.\n\nLogístico trata do apoio EXTERNO. ApSvCmb trata do apoio INTERNO à ForDbq."
+  }, {
+    titulo: "6 Funções Logísticas da MB",
+    texto: "1. Abastecimento\n2. Saúde\n3. Transporte\n4. Manutenção e Salvamento\n5. Pessoal\n6. Desenvolvimento de Bases\n\nMnemônico: ASTMPD = A Saúde Transporta Material Para o Desenvolvimento."
+  }, {
+    titulo: "Ciclo Logístico (3 fases)",
+    texto: "1ª DETERMINAÇÃO DE NECESSIDADES (MAIS IMPORTANTE): O quê, Quanto, Quando, Onde, Prioridade.\n2ª OBTENÇÃO: ato administrativo para conseguir os recursos.\n3ª DISTRIBUIÇÃO: acumulação → movimentação → entrega.\n\nO utilizador é o princípio e o fim do ciclo logístico."
+  }, {
+    titulo: "8 Princípios e 5 Atributos",
+    texto: "PRINCÍPIOS (IO LC C P ES):\n1.Interdependência 2.Objetivo 3.Limites 4.Coordenação 5.Comando 6.Previsão 7.Economia de Esforço 8.Subordinação e Apoio\n\nATRIBUTOS (FPSCS):\n1.Flexibilidade 2.Prioridade 3.Segurança (=Sobrevivência no ApSvCmb) 4.Controle 5.Simplicidade"
+  }]
+}, {
+  cap: "Capítulo 2 — ApSvCmb nas OPANF",
+  blocos: [{
+    titulo: "4 Tipos de AApL",
+    texto: "AApP (Praia): junto à PDbq, operada pelo DP, para desembarque e evacuação.\nAApZDbq: apoia assalto por helicópteros, instalações mínimas.\nAApSvCmb: área principal com todos os suprimentos e pessoal.\nILS: bases mínimas nos escalões Unidade/Subunidade."
+  }, {
+    titulo: "Classes de Suprimentos",
+    texto: "I: Subsistência (água, rações)\nII: Natureza geral c/ dotação (armamentos, viaturas, ferramentas)\nIII: Combustíveis/lubrificantes (exceto aviação)\nIII-A: Combustíveis de aviação\nIV: Natureza geral s/ dotação (construção, fortificação)\nV: Munição (exceto aviação)\nV-A: Munição de aviação\n\nOrdiniários / Extraordinários / Controlados (regulados)"
+  }, {
+    titulo: "Níveis de Estocagem e Distribuição",
+    texto: "NÍVEIS DE ESTOCAGEM:\nOperativo: demanda entre duas recomposições.\nMínimo (Segurança): piso que nunca deve baixar.\nMáximo: Mín + Oper (teto — preserva mobilidade).\n\nDISTRIBUIÇÃO:\nPor PONTO: apoiado vai buscar. Usado nos estágios iniciais AssAnf (DP sem viaturas).\nPor UNIDADE: agência entrega.\n\nRegras: fluxo direto, não exceder níveis, simplicidade nas normas."
+  }, {
+    titulo: "Transporte, EPA, LET/LEP",
+    texto: "EPA: selecionada pelo OLog, maior prioridade de Eng e PM. Liga AApLs.\nLET: zero luz a partir da linha.\nLEP: apenas lanternas militares.\nPCTran: PM em pontos críticos para controle.\nPCCTran: central junto ao PC do GptOpFuzNav."
+  }, {
+    titulo: "Escalões de Manutenção e BtlLog",
+    texto: "1°: Operadores/equipes orgânicas (preventiva)\n2°: BtlLogFuzNav (além da capacidade orgânica)\n3°: OMPS (maior complexidade)\n4°: Fabricante ou Parques de Manutenção\n\nSALVAMENTO: incêndios, avarias, reboque, desatolamento, reflutuação VtrAnf.\n\nBtlLogFuzNav: CiaCmdoSv + CiaAbst + CiaMnt + CiaS + CiaTrnp"
+  }]
+}, {
+  cap: "Capítulo 3 — Procedimentos Política de Manutenção",
+  blocos: [{
+    titulo: "IDMO",
+    texto: "FÓRMULA: IDMO = Disponíveis ÷ Existentes\nFinalidade: apresentar meios disponíveis para atender a FER.\nPeriodicidade: MENSAL (ComFFE, OM Distritais, demais OM detentoras).\nSigilo: CONFIDENCIAL quando preenchido.\nMaterial indisponível: deve estar nas RMC (SINGRA) e SMNC para o CMatFN.\nCritérios de indisponibilidade: estabelecidos pelo CMatBoTec."
+  }, {
+    titulo: "QCNM, QNSI e Índices",
+    texto: "Índice Adequado: % mínimo para atender à FER em condições normais.\nÍndice de Controle = Adequado + 10% (arredondado para cima).\nExceção: quando existente e FER são unitários ou iguais a 2.\n\nÁREAS:\nAcima do controle: seguro.\nÁrea de controle: limite.\nÁrea CRÍTICA (abaixo): urgente!\n\nQNSI: FALHA=impede funcionamento | DEFEITO=não impede mas pode causar parada.\nIndicadores: encaminhados MENSALMENTE."
+  }]
+}, {
+  cap: "Capítulo 4 — Organização de Marchas Motorizadas",
+  blocos: [{
+    titulo: "Movimentos e Formações",
+    texto: "PREPARATÓRIOS (ZA) / TÁTICOS (ZC)\n\nFORMAÇÕES:\nCerrada: 15-50 vtr/km, 1.5×vel(km/h)=dist(m), NOTURNA, excelente controle.\nAberta: 6-14 vtr/km, distância CONSTANTE, DIURNA sem escolta.\nInfiltração: 1-5 vtr/km, máximo SIGILO, controle FRACO."
+  }, {
+    titulo: "Altos e Destacamento Precursor",
+    texto: "ALTOS:\nTécnico: após 45min → 15min (inspeção MNT 1° escalão)\nPeriódico: a cada 2h → 10min (descanso)\nGrande: 30min-1h (refeições e abastecimento)\nMarchas <3h: sem altos em princípio\n\nDEST. PRECURSOR:\nGpItn: TurRec (→RelRec), TuTr (baliza), TuSap (obras)\nGp Estac: prepara nova área\nTuInsp: retaguarda, recupera avariadas, inspeciona ZEstac"
+  }, {
+    titulo: "Estacionamentos e Planejamento",
+    texto: "ESTACIONAMENTOS:\nAcantonamento: casas (2m²/hom, 12m³ ar) — melhor\nAcampamento: barracas\nBivaque: céu aberto — mais frequente no Brasil\n\nÁREA MÍNIMA:\nSem atq aéreo: 40m²/hom + 80m²/vtr\nCom atq aéreo: 50m²/hom ou 100m²/vtr (usa MAIOR)\n\nMARCHA ESCALÕES: MEI = Mínima / Eficiente / Intermediária\nGráfico de Marcha: X=tempo, Y=espaço. Testa e cauda de cada grupamento."
+  }]
+}];
+
+// ===== MAPA MENTAL =====
+const MM = {
+  id: "root",
+  label: "Logística\nOp Anf",
+  color: "#f0b429",
+  bg: "#1a0f00",
+  children: [{
+    id: "c1",
+    label: "Cap 1\nConceitos",
+    color: "#3b82f6",
+    bg: "#0a1f3d",
+    children: [{
+      id: "c1a",
+      label: "Logística",
+      color: "#60a5fa",
+      bg: "#0a1f3d",
+      children: [{
+        id: "c1a1",
+        label: "OBTER+DIST",
+        color: "#93c5fd",
+        bg: "#0a1f3d",
+        children: []
+      }, {
+        id: "c1a2",
+        label: "ApSvCmb",
+        color: "#93c5fd",
+        bg: "#0a1f3d",
+        children: []
+      }]
+    }, {
+      id: "c1b",
+      label: "6 Funções",
+      color: "#60a5fa",
+      bg: "#0a1f3d",
+      children: [{
+        id: "c1b1",
+        label: "Abastec",
+        color: "#93c5fd",
+        bg: "#0a1f3d",
+        children: []
+      }, {
+        id: "c1b2",
+        label: "Saúde",
+        color: "#93c5fd",
+        bg: "#0a1f3d",
+        children: []
+      }, {
+        id: "c1b3",
+        label: "Transporte",
+        color: "#93c5fd",
+        bg: "#0a1f3d",
+        children: []
+      }, {
+        id: "c1b4",
+        label: "Mnt+Salv",
+        color: "#93c5fd",
+        bg: "#0a1f3d",
+        children: []
+      }, {
+        id: "c1b5",
+        label: "Pessoal",
+        color: "#93c5fd",
+        bg: "#0a1f3d",
+        children: []
+      }, {
+        id: "c1b6",
+        label: "Des.Bases",
+        color: "#93c5fd",
+        bg: "#0a1f3d",
+        children: []
+      }]
+    }, {
+      id: "c1c",
+      label: "Ciclo Log",
+      color: "#60a5fa",
+      bg: "#0a1f3d",
+      children: [{
+        id: "c1c1",
+        label: "Det.Nec★",
+        color: "#93c5fd",
+        bg: "#0a1f3d",
+        children: []
+      }, {
+        id: "c1c2",
+        label: "Obtenção",
+        color: "#93c5fd",
+        bg: "#0a1f3d",
+        children: []
+      }, {
+        id: "c1c3",
+        label: "Distribuição",
+        color: "#93c5fd",
+        bg: "#0a1f3d",
+        children: []
+      }]
+    }, {
+      id: "c1d",
+      label: "8 Princípios",
+      color: "#60a5fa",
+      bg: "#0a1f3d",
+      children: [{
+        id: "c1d1",
+        label: "IO LC C PES",
+        color: "#93c5fd",
+        bg: "#0a1f3d",
+        children: []
+      }]
+    }]
+  }, {
+    id: "c2",
+    label: "Cap 2\nApSvCmb",
+    color: "#22c55e",
+    bg: "#052e16",
+    children: [{
+      id: "c2a",
+      label: "4 AApL",
+      color: "#4ade80",
+      bg: "#052e16",
+      children: [{
+        id: "c2a1",
+        label: "AApP",
+        color: "#86efac",
+        bg: "#052e16",
+        children: []
+      }, {
+        id: "c2a2",
+        label: "AApZDbq",
+        color: "#86efac",
+        bg: "#052e16",
+        children: []
+      }, {
+        id: "c2a3",
+        label: "AApSvCmb",
+        color: "#86efac",
+        bg: "#052e16",
+        children: []
+      }, {
+        id: "c2a4",
+        label: "ILS",
+        color: "#86efac",
+        bg: "#052e16",
+        children: []
+      }]
+    }, {
+      id: "c2b",
+      label: "Classes",
+      color: "#4ade80",
+      bg: "#052e16",
+      children: [{
+        id: "c2b1",
+        label: "I=Alimento",
+        color: "#86efac",
+        bg: "#052e16",
+        children: []
+      }, {
+        id: "c2b2",
+        label: "II=Dotação",
+        color: "#86efac",
+        bg: "#052e16",
+        children: []
+      }, {
+        id: "c2b3",
+        label: "III=Combustível",
+        color: "#86efac",
+        bg: "#052e16",
+        children: []
+      }, {
+        id: "c2b4",
+        label: "IV=Construção",
+        color: "#86efac",
+        bg: "#052e16",
+        children: []
+      }, {
+        id: "c2b5",
+        label: "V=Munição",
+        color: "#86efac",
+        bg: "#052e16",
+        children: []
+      }]
+    }, {
+      id: "c2c",
+      label: "Distribuição",
+      color: "#4ade80",
+      bg: "#052e16",
+      children: [{
+        id: "c2c1",
+        label: "Ponto(busca)",
+        color: "#86efac",
+        bg: "#052e16",
+        children: []
+      }, {
+        id: "c2c2",
+        label: "Unidade(entrega)",
+        color: "#86efac",
+        bg: "#052e16",
+        children: []
+      }]
+    }]
+  }, {
+    id: "c3",
+    label: "Cap 3\nPolítica MNT",
+    color: "#a855f7",
+    bg: "#1a0a2e",
+    children: [{
+      id: "c3a",
+      label: "IDMO",
+      color: "#c084fc",
+      bg: "#1a0a2e",
+      children: [{
+        id: "c3a1",
+        label: "D÷E",
+        color: "#d8b4fe",
+        bg: "#1a0a2e",
+        children: []
+      }, {
+        id: "c3a2",
+        label: "MENSAL",
+        color: "#d8b4fe",
+        bg: "#1a0a2e",
+        children: []
+      }, {
+        id: "c3a3",
+        label: "CONFIDENCIAL",
+        color: "#d8b4fe",
+        bg: "#1a0a2e",
+        children: []
+      }]
+    }, {
+      id: "c3b",
+      label: "QNSI",
+      color: "#c084fc",
+      bg: "#1a0a2e",
+      children: [{
+        id: "c3b1",
+        label: "Falha=impede",
+        color: "#d8b4fe",
+        bg: "#1a0a2e",
+        children: []
+      }, {
+        id: "c3b2",
+        label: "Defeito=enfraq",
+        color: "#d8b4fe",
+        bg: "#1a0a2e",
+        children: []
+      }]
+    }, {
+      id: "c3c",
+      label: "Índices",
+      color: "#c084fc",
+      bg: "#1a0a2e",
+      children: [{
+        id: "c3c1",
+        label: "Adequada",
+        color: "#d8b4fe",
+        bg: "#1a0a2e",
+        children: []
+      }, {
+        id: "c3c2",
+        label: "Controle=+10%",
+        color: "#d8b4fe",
+        bg: "#1a0a2e",
+        children: []
+      }, {
+        id: "c3c3",
+        label: "Área Crítica",
+        color: "#d8b4fe",
+        bg: "#1a0a2e",
+        children: []
+      }]
+    }]
+  }, {
+    id: "c4",
+    label: "Cap 4\nMarchas",
+    color: "#f97316",
+    bg: "#1a0a00",
+    children: [{
+      id: "c4a",
+      label: "3 Formações",
+      color: "#fb923c",
+      bg: "#1a0a00",
+      children: [{
+        id: "c4a1",
+        label: "Cerrada(noite)",
+        color: "#fdba74",
+        bg: "#1a0a00",
+        children: []
+      }, {
+        id: "c4a2",
+        label: "Aberta(dia)",
+        color: "#fdba74",
+        bg: "#1a0a00",
+        children: []
+      }, {
+        id: "c4a3",
+        label: "Infiltração",
+        color: "#fdba74",
+        bg: "#1a0a00",
+        children: []
+      }]
+    }, {
+      id: "c4b",
+      label: "3 Altos",
+      color: "#fb923c",
+      bg: "#1a0a00",
+      children: [{
+        id: "c4b1",
+        label: "Técnico:45→15",
+        color: "#fdba74",
+        bg: "#1a0a00",
+        children: []
+      }, {
+        id: "c4b2",
+        label: "Periódico:2h→10",
+        color: "#fdba74",
+        bg: "#1a0a00",
+        children: []
+      }, {
+        id: "c4b3",
+        label: "Grande:refeição",
+        color: "#fdba74",
+        bg: "#1a0a00",
+        children: []
+      }]
+    }, {
+      id: "c4c",
+      label: "Estacionam.",
+      color: "#fb923c",
+      bg: "#1a0a00",
+      children: [{
+        id: "c4c1",
+        label: "Acantonamento",
+        color: "#fdba74",
+        bg: "#1a0a00",
+        children: []
+      }, {
+        id: "c4c2",
+        label: "Acampamento",
+        color: "#fdba74",
+        bg: "#1a0a00",
+        children: []
+      }, {
+        id: "c4c3",
+        label: "Bivaque",
+        color: "#fdba74",
+        bg: "#1a0a00",
+        children: []
+      }]
+    }]
+  }]
+};
+// ===== TOPBAR =====
+function TopBar({
+  tab,
+  setTab
+}) {
+  const tabs = [{
+    id: "inicio",
+    label: "🏠 Início"
+  }, {
+    id: "superresumo",
+    label: "⚡ Super Resumo"
+  }, {
+    id: "resumo",
+    label: "📖 Resumo"
+  }, {
+    id: "mapa",
+    label: "🗺 Mapa"
+  }, {
+    id: "flashcards",
+    label: "🃏 Flashcards"
+  }, {
+    id: "consulta",
+    label: "🔍 Consulta"
+  }, {
+    id: "qpadrao",
+    label: "📝 Q.Padrão"
+  }, {
+    id: "exercicios",
+    label: "🎯 Exercícios"
+  }];
+  return /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+    className: "topbar"
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "topbar-logo"
+  }, "⚓ LOG OpAnf"), /*#__PURE__*/React.createElement("span", {
+    className: "topbar-sub"
+  }, "CISC · Curso de Aperfeiçoamento")), /*#__PURE__*/React.createElement("div", {
+    className: "tabs-wrap"
+  }, tabs.map(t => /*#__PURE__*/React.createElement("button", {
+    key: t.id,
+    className: `tab-btn${tab === t.id ? " active" : ""}`,
+    onClick: () => setTab(t.id)
+  }, t.label))));
+}
+
+// ===== HOME =====
+function Home({
+  setTab
+}) {
+  return /*#__PURE__*/React.createElement("div", {
+    className: "page"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "inicio-hero"
+  }, /*#__PURE__*/React.createElement("h1", null, "⚓ Logística Aplicada às Operações Anfíbias"), /*#__PURE__*/React.createElement("p", null, "Curso de Aperfeiçoamento · Centro de Instrução Almirante Sylvio de Camargo"), /*#__PURE__*/React.createElement("p", {
+    style: {
+      marginTop: 8,
+      color: "#f0b429",
+      fontWeight: 700
+    }
+  }, "4 Capítulos · 40 Flashcards · 90+ Questões")), /*#__PURE__*/React.createElement("div", {
+    className: "stat-grid"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "stat-card"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "stat-num"
+  }, "40"), /*#__PURE__*/React.createElement("div", {
+    className: "stat-label"
+  }, "Flashcards")), /*#__PURE__*/React.createElement("div", {
+    className: "stat-card"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "stat-num"
+  }, "12"), /*#__PURE__*/React.createElement("div", {
+    className: "stat-label"
+  }, "Múlt. Escolha")), /*#__PURE__*/React.createElement("div", {
+    className: "stat-card"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "stat-num"
+  }, "10"), /*#__PURE__*/React.createElement("div", {
+    className: "stat-label"
+  }, "Q. Padrão")), /*#__PURE__*/React.createElement("div", {
+    className: "stat-card"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "stat-num"
+  }, "9"), /*#__PURE__*/React.createElement("div", {
+    className: "stat-label"
+  }, "Tipos Exercício"))), /*#__PURE__*/React.createElement("div", {
+    className: "card"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "card-hd"
+  }, "⭐ Temas Cobrados pelo Professor"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 13,
+      color: "var(--tx2)",
+      lineHeight: 2
+    }
+  }, "📌 IDMO = Disponíveis ÷ Existentes · Periodicidade MENSAL · Sigilo CONFIDENCIAL", /*#__PURE__*/React.createElement("br", null), "📌 QNSI · Falha (impede) vs Defeito (enfraquece) · CMatBoTec", /*#__PURE__*/React.createElement("br", null), "📌 Níveis de Estocagem: Mínimo + Operativo + Máximo", /*#__PURE__*/React.createElement("br", null), "📌 Classes de Suprimentos I a V-A · AApL e seus 4 tipos")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "1fr 1fr",
+      gap: 8
+    }
+  }, [{
+    id: "qpadrao",
+    icon: "📝",
+    label: "Questões do Professor"
+  }, {
+    id: "flashcards",
+    icon: "🃏",
+    label: "Revisar Flashcards"
+  }, {
+    id: "exercicios",
+    icon: "🎯",
+    label: "Fazer Exercícios"
+  }, {
+    id: "mapa",
+    icon: "🗺",
+    label: "Ver Mapa Mental"
+  }].map(b => /*#__PURE__*/React.createElement("button", {
+    key: b.id,
+    className: "exer-menu-btn",
+    onClick: () => setTab(b.id),
+    style: {
+      padding: 12
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 22
+    }
+  }, b.icon), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12,
+      marginTop: 4
+    }
+  }, b.label)))));
+}
+
+// ===== SUPER RESUMO =====
+function SuperResumo() {
+  const [open, setOpen] = useState(Object.fromEntries(Object.keys(SR).map(k => [k, true])));
+  return /*#__PURE__*/React.createElement("div", {
+    className: "page"
+  }, /*#__PURE__*/React.createElement("h2", null, "⚡ Super Resumo"), Object.entries(SR).map(([k, v]) => /*#__PURE__*/React.createElement("div", {
+    key: k,
+    className: "card"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "card-hd",
+    style: {
+      cursor: "pointer"
+    },
+    onClick: () => setOpen(p => ({
+      ...p,
+      [k]: !p[k]
+    }))
+  }, /*#__PURE__*/React.createElement("span", null, v.titulo), /*#__PURE__*/React.createElement("span", {
+    style: {
+      marginLeft: "auto"
+    }
+  }, open[k] ? "▲" : "▼")), open[k] && /*#__PURE__*/React.createElement("ul", {
+    style: {
+      listStyle: "none",
+      padding: 0
+    }
+  }, v.topicos.map((t, i) => /*#__PURE__*/React.createElement("li", {
+    key: i,
+    style: {
+      fontSize: 13,
+      padding: "5px 0",
+      borderBottom: "1px solid var(--bd)",
+      lineHeight: 1.5
+    }
+  }, t))))));
+}
+
+// ===== RESUMO COMPLETO =====
+function ResumoCompleto() {
+  const [open, setOpen] = useState({});
+  const cores = ["#3b82f6", "#22c55e", "#a855f7", "#f97316"];
+  return /*#__PURE__*/React.createElement("div", {
+    className: "page"
+  }, /*#__PURE__*/React.createElement("h2", null, "📖 Resumo Completo"), RESUMO.map((cap, ci) => /*#__PURE__*/React.createElement("div", {
+    key: ci,
+    className: "card",
+    style: {
+      borderTop: `3px solid ${cores[ci]}`
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "card-hd"
+  }, cap.cap), cap.blocos.map((b, bi) => {
+    const k = `${ci}-${bi}`;
+    return /*#__PURE__*/React.createElement("div", {
+      key: bi,
+      style: {
+        marginBottom: 6,
+        border: "1px solid var(--bd)",
+        borderRadius: 8
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        padding: "10px 12px",
+        cursor: "pointer",
+        display: "flex",
+        justifyContent: "space-between",
+        background: "var(--bg3)",
+        borderRadius: open[k] ? "8px 8px 0 0" : "8px"
+      },
+      onClick: () => setOpen(p => ({
+        ...p,
+        [k]: !p[k]
+      }))
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontWeight: 700,
+        fontSize: 13,
+        color: cores[ci]
+      }
+    }, b.titulo), /*#__PURE__*/React.createElement("span", {
+      style: {
+        color: "var(--tx2)"
+      }
+    }, open[k] ? "▲" : "▼")), open[k] && /*#__PURE__*/React.createElement("div", {
+      style: {
+        padding: 12,
+        fontSize: 13,
+        color: "var(--tx2)",
+        lineHeight: 1.7,
+        whiteSpace: "pre-line"
+      }
+    }, b.texto));
+  }))));
+}
+
+// ===== MAPA MENTAL =====
+function MapaMental() {
+  const [open, setOpen] = useState({
+    root: true,
+    c1: true,
+    c2: true,
+    c3: true,
+    c4: true
+  });
+  const [zoom, setZoom] = useState(1);
+  const [pan, setPan] = useState({
+    x: 0,
+    y: 0
+  });
+  const [drag, setDrag] = useState(null);
+  const toggle = id => setOpen(p => ({
+    ...p,
+    [id]: !p[id]
+  }));
+  const layoutNodes = useCallback((node, depth, parentX, parentY, sibIdx, sibCount) => {
+    const nW = depth === 0 ? 80 : depth === 1 ? 100 : depth === 2 ? 110 : 95;
+    const nH = 30;
+    const hGap = 140;
+    const vGap = 44;
+    let x, y;
+    if (depth === 0) {
+      x = 30;
+      y = 380;
+    } else {
+      x = parentX + (hGap + nW / 2);
+      const tot = (sibCount - 1) * vGap;
+      y = parentY - tot / 2 + sibIdx * vGap;
+    }
+    const res = [{
+      ...node,
+      x,
+      y,
+      w: nW,
+      h: nH,
+      depth
+    }];
+    if (open[node.id] && node.children && node.children.length > 0) node.children.forEach((c, ci) => res.push(...layoutNodes(c, depth + 1, x + nW / 2, y, ci, node.children.length)));
+    return res;
+  }, [open]);
+  const allN = layoutNodes(MM, 0, 0, 0, 0, 1);
+  const edges = [];
+  allN.forEach(n => {
+    if (open[n.id] && n.children) n.children.forEach(c => {
+      const cn = allN.find(x => x.id === c.id);
+      if (cn) edges.push({
+        from: n,
+        to: cn
+      });
+    });
+  });
+  const maxX = Math.max(...allN.map(n => n.x + n.w));
+  const minY = Math.min(...allN.map(n => n.y));
+  const maxY = Math.max(...allN.map(n => n.y + n.h));
+  const svgW = maxX + 50;
+  const svgH = maxY - minY + 80;
+  const onMD = e => {
+    if (e.button !== 0) return;
+    setDrag({
+      sx: e.clientX - pan.x,
+      sy: e.clientY - pan.y
+    });
+  };
+  const onMM = e => {
+    if (!drag) return;
+    setPan({
+      x: e.clientX - drag.sx,
+      y: e.clientY - drag.sy
+    });
+  };
+  return /*#__PURE__*/React.createElement("div", {
+    className: "page"
+  }, /*#__PURE__*/React.createElement("h2", null, "🗺 Mapa Mental Interativo"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12,
+      color: "var(--tx2)",
+      marginBottom: 8
+    }
+  }, "💡 Toque nos nós para expandir/recolher. Arraste para navegar."), /*#__PURE__*/React.createElement("div", {
+    className: "mindmap-wrap",
+    style: {
+      height: 500,
+      overflow: "hidden",
+      cursor: drag ? "grabbing" : "grab"
+    },
+    onMouseDown: onMD,
+    onMouseMove: onMM,
+    onMouseUp: () => setDrag(null),
+    onMouseLeave: () => setDrag(null)
+  }, /*#__PURE__*/React.createElement("svg", {
+    style: {
+      width: svgW * zoom,
+      height: svgH * zoom,
+      transform: `translate(${pan.x}px,${pan.y}px) scale(${zoom})`,
+      transformOrigin: "0 0",
+      display: "block"
+    },
+    viewBox: `0 ${minY - 40} ${svgW} ${svgH}`
+  }, edges.map((e, i) => {
+    const x1 = e.from.x + e.from.w / 2,
+      y1 = e.from.y + e.from.h / 2,
+      x2 = e.to.x,
+      y2 = e.to.y + e.to.h / 2,
+      mx = (x1 + x2) / 2;
+    return /*#__PURE__*/React.createElement("path", {
+      key: i,
+      d: `M${x1},${y1} C${mx},${y1} ${mx},${y2} ${x2},${y2}`,
+      fill: "none",
+      stroke: e.from.color || "#2d4a7a",
+      strokeWidth: "1.5",
+      opacity: "0.6"
+    });
+  }), allN.map(n => /*#__PURE__*/React.createElement("g", {
+    key: n.id,
+    style: {
+      cursor: "pointer"
+    },
+    onClick: e => {
+      e.stopPropagation();
+      toggle(n.id);
+    }
+  }, /*#__PURE__*/React.createElement("rect", {
+    x: n.x,
+    y: n.y,
+    width: n.w,
+    height: n.h,
+    rx: "5",
+    fill: n.bg || "#1a2744",
+    stroke: n.color || "#3b82f6",
+    strokeWidth: n.depth === 0 ? 2 : 1.5
+  }), n.label.split("\n").map((line, li) => /*#__PURE__*/React.createElement("text", {
+    key: li,
+    x: n.x + n.w / 2,
+    y: n.y + n.h / 2 + (n.label.includes("\n") ? (li - 0.5) * 12 : -1),
+    textAnchor: "middle",
+    dominantBaseline: "middle",
+    fill: n.color || "#60a5fa",
+    fontSize: n.depth === 0 ? 9 : n.depth === 1 ? 8 : 7,
+    fontWeight: n.depth <= 1 ? "700" : "400"
+  }, line)), n.children && n.children.length > 0 && /*#__PURE__*/React.createElement("text", {
+    x: n.x + n.w - 6,
+    y: n.y + 7,
+    fill: n.color,
+    fontSize: "7",
+    fontWeight: "700"
+  }, open[n.id] ? "▾" : "▸"))))), /*#__PURE__*/React.createElement("div", {
+    className: "mm-controls"
+  }, /*#__PURE__*/React.createElement("button", {
+    className: "btn btn-outline btn-sm",
+    onClick: () => setZoom(z => clamp(z * 1.3, .3, 4))
+  }, "🔍+"), /*#__PURE__*/React.createElement("button", {
+    className: "btn btn-outline btn-sm",
+    onClick: () => setZoom(z => clamp(z / 1.3, .3, 4))
+  }, "🔍-"), /*#__PURE__*/React.createElement("button", {
+    className: "btn btn-outline btn-sm",
+    onClick: () => {
+      setZoom(1);
+      setPan({
+        x: 0,
+        y: 0
+      });
+    }
+  }, "Reset"), /*#__PURE__*/React.createElement("button", {
+    className: "btn btn-outline btn-sm",
+    onClick: () => setOpen({
+      root: true,
+      c1: true,
+      c2: true,
+      c3: true,
+      c4: true,
+      c1a: true,
+      c1b: true,
+      c1c: true,
+      c1d: true,
+      c2a: true,
+      c2b: true,
+      c2c: true,
+      c3a: true,
+      c3b: true,
+      c3c: true,
+      c4a: true,
+      c4b: true,
+      c4c: true
+    })
+  }, "Expandir Tudo"), /*#__PURE__*/React.createElement("button", {
+    className: "btn btn-outline btn-sm",
+    onClick: () => setOpen({
+      root: true
+    })
+  }, "Recolher")));
+}
+
+// ===== CONSULTA =====
+function Consulta() {
+  const [q, setQ] = useState("");
+  const allC = [...FC.map(f => ({
+    tipo: "Flashcard",
+    titulo: f.f,
+    texto: f.v + " " + f.dm,
+    cat: f.cat
+  })), ...MC.map(m => ({
+    tipo: "MC",
+    titulo: m.p,
+    texto: m.a.map(a => a.t).join(" "),
+    cat: ""
+  })), ...DEF.map(d => ({
+    tipo: "Def",
+    titulo: d.t,
+    texto: d.def,
+    cat: ""
+  })), ...Object.entries(SR).flatMap(([k, v]) => v.topicos.map(t => ({
+    tipo: "Resumo",
+    titulo: v.titulo,
+    texto: t,
+    cat: k
+  })))];
+  const hl = (text, q) => {
+    if (!q) return text;
+    const p = text.split(new RegExp(`(${q})`, "gi"));
+    return p.map((x, i) => x.toLowerCase() === q.toLowerCase() ? /*#__PURE__*/React.createElement("mark", {
+      key: i
+    }, x) : x);
+  };
+  const res = q.length > 2 ? allC.filter(c => c.titulo.toLowerCase().includes(q.toLowerCase()) || c.texto.toLowerCase().includes(q.toLowerCase())).slice(0, 20) : [];
+  return /*#__PURE__*/React.createElement("div", {
+    className: "page"
+  }, /*#__PURE__*/React.createElement("h2", null, "🔍 Consulta"), /*#__PURE__*/React.createElement("div", {
+    className: "search-wrap"
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "search-icon"
+  }, "🔍"), /*#__PURE__*/React.createElement("input", {
+    type: "text",
+    placeholder: "Buscar termo, sigla, conceito... (min 3 letras)",
+    value: q,
+    onChange: e => setQ(e.target.value)
+  })), q.length > 0 && q.length < 3 && /*#__PURE__*/React.createElement("p", null, "Digite pelo menos 3 caracteres..."), res.length === 0 && q.length >= 3 && /*#__PURE__*/React.createElement("p", null, "Nenhum resultado para \"", q, "\""), res.map((r, i) => /*#__PURE__*/React.createElement("div", {
+    key: i,
+    className: "result-item"
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 6,
+      marginBottom: 4
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "badge badge-gold"
+  }, r.tipo), r.cat && /*#__PURE__*/React.createElement("span", {
+    className: "badge badge-blue"
+  }, r.cat)), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontWeight: 700,
+      fontSize: 13,
+      marginBottom: 4
+    }
+  }, hl(r.titulo, q)), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12,
+      color: "var(--tx2)",
+      lineHeight: 1.5
+    }
+  }, hl(r.texto.substring(0, 180), q)))));
+}
+
+// ===== QUESTÕES PADRÃO =====
+function QuestoesPadroes() {
+  const [show, setShow] = useState({});
+  return /*#__PURE__*/React.createElement("div", {
+    className: "page"
+  }, /*#__PURE__*/React.createElement("h2", null, "📝 Questões Padrão do Professor"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: "#1a1400",
+      border: "1px solid var(--gd2)",
+      borderRadius: 8,
+      padding: "10px 12px",
+      marginBottom: 12,
+      fontSize: 12,
+      color: "#e8c84a"
+    }
+  }, "⚠️ Alta probabilidade de cair na prova — estude bem estas questões!"), QP.map((q, i) => /*#__PURE__*/React.createElement("div", {
+    key: i,
+    className: "qp-section"
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 8,
+      marginBottom: 8,
+      alignItems: "center"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "question-num"
+  }, i + 1), /*#__PURE__*/React.createElement("span", {
+    className: "badge badge-blue"
+  }, q.tipo)), /*#__PURE__*/React.createElement("div", {
+    className: "qp-q"
+  }, q.q), /*#__PURE__*/React.createElement("button", {
+    className: "btn btn-outline btn-sm",
+    onClick: () => setShow(p => ({
+      ...p,
+      [i]: !p[i]
+    }))
+  }, show[i] ? "🙈 Ocultar" : "👁 Ver Resposta"), show[i] && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+    className: "gabarito-box",
+    style: {
+      marginTop: 10,
+      whiteSpace: "pre-line"
+    }
+  }, "✅ ", q.r), /*#__PURE__*/React.createElement("div", {
+    className: "mem-box"
+  }, "🧠 ", q.dm)))));
+}
+
+// ===== FLASHCARDS =====
+function Flashcards() {
+  const sv = LS.get("fc_state", {
+    idx: 0,
+    known: [],
+    unknown: [],
+    mode: "all"
+  });
+  const [idx, setIdx] = useState(sv.idx);
+  const [known, setKnown] = useState(sv.known);
+  const [unknown, setUnknown] = useState(sv.unknown);
+  const [mode, setMode] = useState(sv.mode);
+  const [flipped, setFlipped] = useState(false);
+  const [showDica, setShowDica] = useState(false);
+  const [startFrom, setStartFrom] = useState("");
+  const [showStart, setShowStart] = useState(false);
+  const [hist, setHist] = useState([]);
+  const list = mode === "unknown" ? FC.filter(f => unknown.includes(f.id)) : FC;
+  const cur = list[Math.min(idx, list.length - 1)];
+  useEffect(() => {
+    LS.set("fc_state", {
+      idx,
+      known,
+      unknown,
+      mode
+    });
+  }, [idx, known, unknown, mode]);
+  const go = dir => {
+    setFlipped(false);
+    setShowDica(false);
+    if (dir === 1 && idx < list.length - 1) {
+      setHist(h => [...h, idx]);
+      setIdx(i => i + 1);
+    } else if (dir === -1 && hist.length > 0) {
+      const p = hist[hist.length - 1];
+      setHist(h => h.slice(0, -1));
+      setIdx(p);
+    }
+  };
+  const markKnown = () => {
+    setKnown(k => [...k.filter(x => x !== cur.id), cur.id]);
+    setUnknown(u => u.filter(x => x !== cur.id));
+    if (idx < list.length - 1) {
+      setHist(h => [...h, idx]);
+      setIdx(i => i + 1);
+      setFlipped(false);
+      setShowDica(false);
+    }
+  };
+  const markUnknown = () => {
+    setUnknown(u => [...u.filter(x => x !== cur.id), cur.id]);
+    setKnown(k => k.filter(x => x !== cur.id));
+    if (idx < list.length - 1) {
+      setHist(h => [...h, idx]);
+      setIdx(i => i + 1);
+      setFlipped(false);
+      setShowDica(false);
+    }
+  };
+  const reset = () => {
+    setKnown([]);
+    setUnknown([]);
+    setIdx(0);
+    setHist([]);
+    setFlipped(false);
+    setMode("all");
+  };
+  const goToCard = () => {
+    const n = parseInt(startFrom) - 1;
+    if (n >= 0 && n < FC.length) {
+      setIdx(n);
+      setMode("all");
+      setFlipped(false);
+      setShowStart(false);
+      setHist([]);
+    }
+  };
+  if (!cur) return /*#__PURE__*/React.createElement("div", {
+    className: "page"
+  }, /*#__PURE__*/React.createElement("h2", null, "Flashcards"), /*#__PURE__*/React.createElement("p", null, "Sem flashcards."));
+  const fcH = flipped ? 240 : 180;
+  return /*#__PURE__*/React.createElement("div", {
+    className: "page"
+  }, /*#__PURE__*/React.createElement("h2", null, "🃏 Flashcards"), /*#__PURE__*/React.createElement("div", {
+    className: "row"
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "badge badge-gold"
+  }, idx + 1, "/", list.length), /*#__PURE__*/React.createElement("span", {
+    className: "badge badge-green"
+  }, "✓", known.length), /*#__PURE__*/React.createElement("span", {
+    className: "badge badge-red"
+  }, "✗", unknown.length), mode === "unknown" && /*#__PURE__*/React.createElement("span", {
+    className: "badge badge-blue"
+  }, "Revisando erros"), /*#__PURE__*/React.createElement("button", {
+    className: "btn btn-outline btn-sm",
+    style: {
+      marginLeft: "auto"
+    },
+    onClick: () => setShowStart(p => !p)
+  }, "🔢 Ir para...")), showStart && /*#__PURE__*/React.createElement("div", {
+    className: "card",
+    style: {
+      marginBottom: 10
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 13,
+      marginBottom: 8
+    }
+  }, "Iniciar do flashcard nº (1-40):"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 8
+    }
+  }, /*#__PURE__*/React.createElement("input", {
+    type: "text",
+    style: {
+      width: 80
+    },
+    placeholder: "1-40",
+    value: startFrom,
+    onChange: e => setStartFrom(e.target.value)
+  }), /*#__PURE__*/React.createElement("button", {
+    className: "btn btn-gold btn-sm",
+    onClick: goToCard
+  }, "Ir"))), /*#__PURE__*/React.createElement("div", {
+    className: "progress-bar-wrap"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "progress-bar-fill",
+    style: {
+      width: `${(idx + 1) / list.length * 100}%`
+    }
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: "var(--tx2)",
+      marginBottom: 4,
+      textAlign: "center"
+    }
+  }, cur.cat), /*#__PURE__*/React.createElement("div", {
+    className: "flashcard-wrap",
+    style: {
+      height: fcH + 20
+    },
+    onClick: () => setFlipped(f => !f)
+  }, /*#__PURE__*/React.createElement("div", {
+    className: `flashcard${flipped ? " flipped" : ""}`,
+    style: {
+      height: fcH
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "fc-face fc-front",
+    style: {
+      height: fcH,
+      position: "absolute",
+      minHeight: fcH
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: "var(--tx2)",
+      marginBottom: 8
+    }
+  }, "👆 Toque para ver a resposta"), /*#__PURE__*/React.createElement("div", {
+    className: "fc-front-text"
+  }, cur.f), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: "var(--tx2)",
+      marginTop: 8
+    }
+  }, cur.d)), /*#__PURE__*/React.createElement("div", {
+    className: "fc-face fc-back",
+    style: {
+      height: fcH,
+      position: "absolute",
+      minHeight: fcH
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: "var(--tx2)",
+      marginBottom: 8
+    }
+  }, "👆 Toque para voltar"), /*#__PURE__*/React.createElement("div", {
+    className: "fc-back-text",
+    style: {
+      whiteSpace: "pre-line"
+    }
+  }, cur.v)))), flipped && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+    className: "mem-box"
+  }, "🧠 ", cur.dm), /*#__PURE__*/React.createElement("button", {
+    className: "btn btn-outline btn-sm",
+    style: {
+      marginTop: 6
+    },
+    onClick: e => {
+      e.stopPropagation();
+      setShowDica(p => !p);
+    }
+  }, "💡 ", showDica ? "Ocultar" : "Dica"), showDica && /*#__PURE__*/React.createElement("div", {
+    className: "tip-box"
+  }, "💡 ", cur.d), /*#__PURE__*/React.createElement("div", {
+    className: "btn-row",
+    style: {
+      marginTop: 8
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    className: "btn btn-green",
+    onClick: markKnown
+  }, "✅ Sabia!"), /*#__PURE__*/React.createElement("button", {
+    className: "btn btn-red",
+    onClick: markUnknown
+  }, "❌ Não Sabia"))), /*#__PURE__*/React.createElement("div", {
+    className: "btn-row",
+    style: {
+      marginTop: 8
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    className: "btn btn-outline",
+    onClick: () => go(-1),
+    disabled: hist.length === 0
+  }, "◀ Anterior"), /*#__PURE__*/React.createElement("button", {
+    className: "btn btn-outline",
+    onClick: () => go(1),
+    disabled: idx >= list.length - 1
+  }, "Próximo ▶")), unknown.length > 0 && /*#__PURE__*/React.createElement("div", {
+    className: "btn-row",
+    style: {
+      marginTop: 6
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    className: "btn btn-blue btn-sm",
+    onClick: () => {
+      setMode("unknown");
+      setIdx(0);
+      setHist([]);
+      setFlipped(false);
+    }
+  }, "🔁 Revisar ", unknown.length, " erros"), mode === "unknown" && /*#__PURE__*/React.createElement("button", {
+    className: "btn btn-outline btn-sm",
+    onClick: () => {
+      setMode("all");
+      setIdx(0);
+    }
+  }, "Ver Todos")), /*#__PURE__*/React.createElement("button", {
+    className: "btn btn-outline btn-sm",
+    style: {
+      marginTop: 6
+    },
+    onClick: reset
+  }, "🔄 Reiniciar"));
+}
+
+// ===== MÚLTIPLA ESCOLHA =====
+function MultiplaEscolha() {
+  const [qs, setQs] = useState(MC);
+  const [st, setSt] = useState(() => LS.get("mc_st", {
+    idx: 0,
+    sel: null,
+    conf: false,
+    score: 0,
+    wrong: [],
+    done: false,
+    ans: {}
+  }));
+  const [showD, setShowD] = useState(false);
+  useEffect(() => {
+    LS.set("mc_st", st);
+  }, [st]);
+  const cur = qs[st.idx];
+  const total = qs.length;
+  const confirm = () => {
+    if (!st.sel) return;
+    const ok = st.sel === cur.r;
+    setSt(p => ({
+      ...p,
+      conf: true,
+      score: ok ? p.score + 1 : p.score,
+      wrong: ok ? p.wrong : [...p.wrong.filter(x => x !== p.idx), p.idx],
+      ans: {
+        ...p.ans,
+        [p.idx]: p.sel
+      }
+    }));
+    setShowD(false);
+  };
+  const next = () => {
+    if (st.idx < total - 1) setSt(p => ({
+      ...p,
+      idx: p.idx + 1,
+      sel: null,
+      conf: false
+    }));else setSt(p => ({
+      ...p,
+      done: true
+    }));
+    setShowD(false);
+  };
+  const prev = () => {
+    if (st.idx > 0) setSt(p => ({
+      ...p,
+      idx: p.idx - 1,
+      sel: p.ans[p.idx - 1] || null,
+      conf: !!p.ans[p.idx - 1]
+    }));
+    setShowD(false);
+  };
+  const restart = () => {
+    setQs(MC);
+    setSt({
+      idx: 0,
+      sel: null,
+      conf: false,
+      score: 0,
+      wrong: [],
+      done: false,
+      ans: {}
+    });
+    setShowD(false);
+  };
+  if (st.done) {
+    const p = Math.round(st.score / total * 100);
+    return /*#__PURE__*/React.createElement("div", {
+      className: "result-screen"
+    }, /*#__PURE__*/React.createElement("div", {
+      className: "score-big"
+    }, p, "%"), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 18,
+        margin: "10px 0"
+      }
+    }, st.score, "/", total, " corretas"), /*#__PURE__*/React.createElement("div", {
+      className: "btn-row",
+      style: {
+        justifyContent: "center"
+      }
+    }, st.wrong.length > 0 && /*#__PURE__*/React.createElement("button", {
+      className: "btn btn-red",
+      onClick: () => {
+        setQs(MC.filter((_, i) => st.wrong.includes(i)));
+        setSt({
+          idx: 0,
+          sel: null,
+          conf: false,
+          score: 0,
+          wrong: [],
+          done: false,
+          ans: {}
+        });
+      }
+    }, "🔁 Refazer ", st.wrong.length), /*#__PURE__*/React.createElement("button", {
+      className: "btn btn-gold",
+      onClick: restart
+    }, "🔄 Recomeçar")));
+  }
+  if (!cur) return null;
+  return /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    className: "counter"
+  }, "Questão ", st.idx + 1, "/", total, " · ✓", st.score, " · ✗", st.wrong.length), /*#__PURE__*/React.createElement("div", {
+    className: "progress-bar-wrap"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "progress-bar-fill",
+    style: {
+      width: `${(st.idx + 1) / total * 100}%`
+    }
+  })), /*#__PURE__*/React.createElement("div", {
+    className: "q-block"
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 8,
+      marginBottom: 10,
+      alignItems: "flex-start"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "question-num"
+  }, st.idx + 1), /*#__PURE__*/React.createElement("div", {
+    className: "q-text"
+  }, cur.p)), cur.a.map(a => {
+    let cls = "alt-btn";
+    if (st.conf) {
+      if (a.l === cur.r) cls += " correct";else if (a.l === st.sel && a.l !== cur.r) cls += " wrong";
+    } else if (a.l === st.sel) cls += " selected";
+    return /*#__PURE__*/React.createElement("button", {
+      key: a.l,
+      className: cls,
+      onClick: () => !st.conf && setSt(p => ({
+        ...p,
+        sel: a.l
+      })),
+      disabled: st.conf
+    }, /*#__PURE__*/React.createElement("span", {
+      className: "alt-letter"
+    }, a.l), a.t);
+  }), st.conf && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+    className: "tip-box"
+  }, st.sel === cur.r ? "✅ Correto!" : "❌ Errado! Resposta: " + cur.r), /*#__PURE__*/React.createElement("div", {
+    className: "mem-box"
+  }, "🧠 ", cur.dm)), !st.conf && /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("button", {
+    className: "btn btn-outline btn-sm",
+    style: {
+      marginTop: 6
+    },
+    onClick: () => setShowD(p => !p)
+  }, "💡 Dica"), showD && /*#__PURE__*/React.createElement("div", {
+    className: "tip-box"
+  }, "💡 ", cur.d))), /*#__PURE__*/React.createElement("div", {
+    className: "btn-row"
+  }, /*#__PURE__*/React.createElement("button", {
+    className: "btn btn-outline",
+    onClick: prev,
+    disabled: st.idx === 0
+  }, "◀ Anterior"), !st.conf ? /*#__PURE__*/React.createElement("button", {
+    className: "btn btn-gold",
+    onClick: confirm,
+    disabled: !st.sel
+  }, "✔ Confirmar") : /*#__PURE__*/React.createElement("button", {
+    className: "btn btn-blue",
+    onClick: next
+  }, st.idx < total - 1 ? "Próxima ▶" : "Ver Resultado")));
+}
+function CertoErrado() {
+  const [st, setSt] = useState({
+    idx: 0,
+    selected: null,
+    justif: "",
+    confirmed: false,
+    wrong: [],
+    hist: [],
+    done: false,
+    answers: {},
+    justifs: {}
+  });
+  const [showDica, setShowDica] = useState(false);
+  const [qs, setQs] = useState(CE);
+  const cur = qs[st.idx];
+  const total = qs.length;
+  const confirm = () => {
+    if (!st.selected) return;
+    const correct = st.selected === cur.r;
+    const needsJustif = st.selected === "errado" && !st.justif.trim();
+    if (needsJustif) {
+      alert("Por favor, justifique por que você marcou como ERRADO.");
+      return;
+    }
+    setSt(p => ({
+      ...p,
+      confirmed: true,
+      wrong: correct ? p.wrong : [...p.wrong.filter(x => x !== p.idx), p.idx],
+      answers: {
+        ...p.answers,
+        [p.idx]: p.selected
+      },
+      justifs: {
+        ...p.justifs,
+        [p.idx]: p.justif
+      }
+    }));
+    setShowDica(false);
+  };
+  const next = () => {
+    if (st.idx < total - 1) setSt(p => ({
+      ...p,
+      idx: p.idx + 1,
+      selected: null,
+      justif: "",
+      confirmed: false
+    }));else setSt(p => ({
+      ...p,
+      done: true
+    }));
+    setShowDica(false);
+  };
+  const prev = () => {
+    if (st.idx > 0) setSt(p => ({
+      ...p,
+      idx: p.idx - 1,
+      selected: p.answers[p.idx - 1] || null,
+      justif: p.justifs[p.idx - 1] || "",
+      confirmed: !!p.answers[p.idx - 1]
+    }));
+    setShowDica(false);
+  };
+  const redoWrong = () => {
+    const wqs = CE.filter((_, i) => st.wrong.includes(i));
+    setQs(wqs);
+    setSt({
+      idx: 0,
+      selected: null,
+      justif: "",
+      confirmed: false,
+      wrong: [],
+      hist: [],
+      done: false,
+      answers: {},
+      justifs: {}
+    });
+  };
+  const restart = () => {
+    setQs(CE);
+    setSt({
+      idx: 0,
+      selected: null,
+      justif: "",
+      confirmed: false,
+      wrong: [],
+      hist: [],
+      done: false,
+      answers: {},
+      justifs: {}
+    });
+  };
+  if (st.done) {
+    const score = CE.length - st.wrong.length;
+    const pct = Math.round(score / total * 100);
+    return /*#__PURE__*/React.createElement("div", {
+      className: "result-screen"
+    }, /*#__PURE__*/React.createElement("div", {
+      className: "score-big"
+    }, pct, "%"), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 18,
+        margin: "10px 0"
+      }
+    }, score, "/", total, " corretas"), st.wrong.length > 0 && /*#__PURE__*/React.createElement("button", {
+      className: "btn btn-red",
+      style: {
+        marginRight: 8
+      },
+      onClick: redoWrong
+    }, "🔁 Refazer ", st.wrong.length, " erradas"), /*#__PURE__*/React.createElement("button", {
+      className: "btn btn-gold",
+      onClick: restart
+    }, "🔄 Recomeçar"));
+  }
+  if (!cur) return null;
+  return /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    className: "counter"
+  }, "Questão ", st.idx + 1, "/", total), /*#__PURE__*/React.createElement("div", {
+    className: "progress-bar-wrap"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "progress-bar-fill",
+    style: {
+      width: `${(st.idx + 1) / total * 100}%`
+    }
+  })), /*#__PURE__*/React.createElement("div", {
+    className: "q-block"
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 8,
+      marginBottom: 10,
+      alignItems: "flex-start"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "question-num"
+  }, st.idx + 1), /*#__PURE__*/React.createElement("div", {
+    className: "q-text"
+  }, "\"", cur.a, "\"")), /*#__PURE__*/React.createElement("div", {
+    className: "btn-row",
+    style: {
+      marginBottom: 10
+    }
+  }, ["certo", "errado"].map(op => {
+    let cls = "btn";
+    if (st.confirmed) {
+      cls += op === cur.r ? " btn-green" : st.selected === op ? " btn-red" : " btn-outline";
+    } else {
+      cls += st.selected === op ? " btn-gold" : " btn-outline";
+    }
+    return /*#__PURE__*/React.createElement("button", {
+      key: op,
+      className: cls,
+      onClick: () => !st.confirmed && setSt(p => ({
+        ...p,
+        selected: op
+      })),
+      disabled: st.confirmed
+    }, op === "certo" ? "✅ CERTO" : "❌ ERRADO");
+  })), (st.selected === "errado" || st.confirmed && cur.r === "errado") && /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginBottom: 10
+    }
+  }, /*#__PURE__*/React.createElement("label", {
+    style: {
+      fontSize: 12,
+      color: "var(--tx2)",
+      display: "block",
+      marginBottom: 4
+    }
+  }, st.confirmed ? "Sua justificativa:" : "Justifique por que está ERRADO:"), /*#__PURE__*/React.createElement("textarea", {
+    value: st.justif,
+    onChange: e => !st.confirmed && setSt(p => ({
+      ...p,
+      justif: e.target.value
+    })),
+    readOnly: st.confirmed,
+    rows: 3,
+    placeholder: "Explique o erro..."
+  })), st.confirmed && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+    className: "gabarito-box"
+  }, st.selected === cur.r ? "✅ Acertou!" : "❌ Errou!", /*#__PURE__*/React.createElement("br", null), /*#__PURE__*/React.createElement("strong", null, "Resposta correta: ", cur.r.toUpperCase()), /*#__PURE__*/React.createElement("br", null), cur.j), /*#__PURE__*/React.createElement("div", {
+    className: "mem-box"
+  }, "🧠 ", cur.dm)), !st.confirmed && /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("button", {
+    className: "btn btn-outline btn-sm",
+    onClick: () => setShowDica(p => !p)
+  }, "💡 Dica"), showDica && /*#__PURE__*/React.createElement("div", {
+    className: "tip-box"
+  }, "💡 ", cur.d))), /*#__PURE__*/React.createElement("div", {
+    className: "btn-row"
+  }, /*#__PURE__*/React.createElement("button", {
+    className: "btn btn-outline",
+    onClick: prev,
+    disabled: st.idx === 0
+  }, "◀ Anterior"), !st.confirmed ? /*#__PURE__*/React.createElement("button", {
+    className: "btn btn-gold",
+    onClick: confirm,
+    disabled: !st.selected
+  }, "✔ Confirmar") : /*#__PURE__*/React.createElement("button", {
+    className: "btn btn-blue",
+    onClick: next
+  }, st.idx < total - 1 ? "Próxima ▶" : "Ver Resultado")));
+}
+
+// ================================================================
+// COMPONENTE: COMPLETE AS LACUNAS
+// ================================================================
+function CompleteLacunas() {
+  const [idx, setIdx] = useState(0);
+  const [resps, setResps] = useState({});
+  const [confirmed, setConfirmed] = useState({});
+  const [wrong, setWrong] = useState([]);
+  const [showDica, setShowDica] = useState(false);
+  const [done, setDone] = useState(false);
+  const [hist, setHist] = useState([]);
+  const qs = GAP;
+  const cur = qs[idx];
+  const total = qs.length;
+  const getCurResp = () => resps[idx] || cur.res.map(() => "");
+  const setResp = (ri, v) => {
+    const arr = [...getCurResp()];
+    arr[ri] = v;
+    setResps(p => ({
+      ...p,
+      [idx]: arr
+    }));
+  };
+  const confirm = () => {
+    if (confirmed[idx]) return;
+    const arr = getCurResp();
+    const allFilled = arr.every(r => r.trim().length > 0);
+    if (!allFilled) {
+      alert("Preencha todas as lacunas antes de confirmar.");
+      return;
+    }
+    const correct = cur.res.every((r, i) => arr[i].trim().toLowerCase().includes(r.toLowerCase().split("(")[0].trim().toLowerCase()));
+    if (!correct) setWrong(w => [...w.filter(x => x !== idx), idx]);
+    setConfirmed(p => ({
+      ...p,
+      [idx]: true
+    }));
+    setShowDica(false);
+  };
+  const next = () => {
+    if (idx < total - 1) {
+      setHist(h => [...h, idx]);
+      setIdx(i => i + 1);
+      setShowDica(false);
+    } else setDone(true);
+  };
+  const prev = () => {
+    if (hist.length > 0) {
+      const p = hist[hist.length - 1];
+      setHist(h => h.slice(0, -1));
+      setIdx(p);
+    } else if (idx > 0) {
+      setIdx(i => i - 1);
+    }
+    setShowDica(false);
+  };
+  const restart = () => {
+    setIdx(0);
+    setResps({});
+    setConfirmed({});
+    setWrong([]);
+    setDone(false);
+    setHist([]);
+  };
+  if (done || idx >= total) {
+    const score = total - wrong.length;
+    return /*#__PURE__*/React.createElement("div", {
+      className: "result-screen"
+    }, /*#__PURE__*/React.createElement("div", {
+      className: "score-big"
+    }, Math.round(score / total * 100), "%"), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 18,
+        margin: "10px 0"
+      }
+    }, score, "/", total, " corretas"), /*#__PURE__*/React.createElement("button", {
+      className: "btn btn-gold",
+      onClick: restart
+    }, "🔄 Recomeçar"));
+  }
+  if (!cur) return null;
+  const arr = getCurResp();
+  let parts = cur.frase.split("________");
+  return /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    className: "counter"
+  }, "Questão ", idx + 1, "/", total), /*#__PURE__*/React.createElement("div", {
+    className: "progress-bar-wrap"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "progress-bar-fill",
+    style: {
+      width: `${(idx + 1) / total * 100}%`
+    }
+  })), /*#__PURE__*/React.createElement("div", {
+    className: "q-block"
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 8,
+      marginBottom: 12,
+      alignItems: "flex-start"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "question-num"
+  }, idx + 1), /*#__PURE__*/React.createElement("div", {
+    className: "q-text"
+  }, "Complete as lacunas:")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 14,
+      lineHeight: 2,
+      color: "var(--tx)"
+    }
+  }, parts.map((part, i) => /*#__PURE__*/React.createElement("span", {
+    key: i
+  }, part, i < parts.length - 1 && /*#__PURE__*/React.createElement("input", {
+    type: "text",
+    style: {
+      display: "inline-block",
+      width: 180,
+      margin: "0 4px",
+      verticalAlign: "middle"
+    },
+    value: arr[i] || "",
+    onChange: e => !confirmed[idx] && setResp(i, e.target.value),
+    readOnly: !!confirmed[idx],
+    placeholder: `Lacuna ${i + 1}`
+  })))), confirmed[idx] && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+    className: "gabarito-box",
+    style: {
+      marginTop: 10,
+      whiteSpace: "pre-line"
+    }
+  }, "✅ Gabarito:\\n", cur.res.map((r, i) => `Lacuna ${i + 1}: ${r}`).join("\n")), /*#__PURE__*/React.createElement("div", {
+    className: "mem-box"
+  }, "🧠 ", cur.dm)), !confirmed[idx] && /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 8
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    className: "btn btn-outline btn-sm",
+    onClick: () => setShowDica(p => !p)
+  }, "💡 Dica"), showDica && /*#__PURE__*/React.createElement("div", {
+    className: "tip-box"
+  }, "💡 ", cur.d))), /*#__PURE__*/React.createElement("div", {
+    className: "btn-row"
+  }, /*#__PURE__*/React.createElement("button", {
+    className: "btn btn-outline",
+    onClick: prev,
+    disabled: idx === 0 && hist.length === 0
+  }, "◀ Anterior"), !confirmed[idx] ? /*#__PURE__*/React.createElement("button", {
+    className: "btn btn-gold",
+    onClick: confirm
+  }, "✔ Confirmar") : /*#__PURE__*/React.createElement("button", {
+    className: "btn btn-blue",
+    onClick: next
+  }, idx < total - 1 ? "Próxima ▶" : "Ver Resultado")));
+}
+
+// ================================================================
+// COMPONENTE: DEFINIÇÕES
+// ================================================================
+function Definicoes() {
+  const [idx, setIdx] = useState(0);
+  const [resp, setResp] = useState({});
+  const [confirmed, setConfirmed] = useState({});
+  const [wrong, setWrong] = useState([]);
+  const [showDica, setShowDica] = useState(false);
+  const [done, setDone] = useState(false);
+  const [hist, setHist] = useState([]);
+  const qs = DEF;
+  const cur = qs[idx];
+  const total = qs.length;
+  const confirm = () => {
+    if (confirmed[idx]) return;
+    if (!resp[idx]?.trim()) {
+      alert("Escreva uma definição antes de confirmar.");
+      return;
+    }
+    setConfirmed(p => ({
+      ...p,
+      [idx]: true
+    }));
+    setShowDica(false);
+  };
+  const next = () => {
+    if (idx < total - 1) {
+      setHist(h => [...h, idx]);
+      setIdx(i => i + 1);
+      setShowDica(false);
+    } else setDone(true);
+  };
+  const prev = () => {
+    if (hist.length > 0) {
+      const p = hist[hist.length - 1];
+      setHist(h => h.slice(0, -1));
+      setIdx(p);
+    } else if (idx > 0) setIdx(i => i - 1);
+    setShowDica(false);
+  };
+  const restart = () => {
+    setIdx(0);
+    setResp({});
+    setConfirmed({});
+    setWrong([]);
+    setDone(false);
+    setHist([]);
+  };
+  if (done) {
+    return /*#__PURE__*/React.createElement("div", {
+      className: "result-screen"
+    }, /*#__PURE__*/React.createElement("div", {
+      className: "score-big"
+    }, "✅"), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 18,
+        margin: "10px 0"
+      }
+    }, "Todas as definições respondidas!"), /*#__PURE__*/React.createElement("button", {
+      className: "btn btn-gold",
+      onClick: restart
+    }, "🔄 Recomeçar"));
+  }
+  if (!cur) return null;
+  return /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    className: "counter"
+  }, "Questão ", idx + 1, "/", total), /*#__PURE__*/React.createElement("div", {
+    className: "progress-bar-wrap"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "progress-bar-fill",
+    style: {
+      width: `${(idx + 1) / total * 100}%`
+    }
+  })), /*#__PURE__*/React.createElement("div", {
+    className: "q-block"
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 8,
+      marginBottom: 12,
+      alignItems: "flex-start"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "question-num"
+  }, idx + 1), /*#__PURE__*/React.createElement("div", {
+    className: "q-text"
+  }, "Defina o termo: ", /*#__PURE__*/React.createElement("strong", {
+    style: {
+      color: "var(--gd)"
+    }
+  }, cur.t))), /*#__PURE__*/React.createElement("textarea", {
+    value: resp[idx] || "",
+    onChange: e => !confirmed[idx] && setResp(p => ({
+      ...p,
+      [idx]: e.target.value
+    })),
+    readOnly: !!confirmed[idx],
+    rows: 4,
+    placeholder: "Escreva sua definição aqui..."
+  }), confirmed[idx] && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+    className: "gabarito-box",
+    style: {
+      marginTop: 10
+    }
+  }, /*#__PURE__*/React.createElement("strong", null, "📋 Gabarito:"), /*#__PURE__*/React.createElement("br", null), cur.def), /*#__PURE__*/React.createElement("div", {
+    className: "gabarito-resumido"
+  }, /*#__PURE__*/React.createElement("strong", null, "📌 Gabarito Resumido:"), " ", cur.gr), /*#__PURE__*/React.createElement("div", {
+    className: "mem-box"
+  }, "🧠 ", cur.dm)), !confirmed[idx] && /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 8
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    className: "btn btn-outline btn-sm",
+    onClick: () => setShowDica(p => !p)
+  }, "💡 Dica"), showDica && /*#__PURE__*/React.createElement("div", {
+    className: "tip-box"
+  }, "💡 ", cur.d))), /*#__PURE__*/React.createElement("div", {
+    className: "btn-row"
+  }, /*#__PURE__*/React.createElement("button", {
+    className: "btn btn-outline",
+    onClick: prev,
+    disabled: idx === 0 && hist.length === 0
+  }, "◀ Anterior"), !confirmed[idx] ? /*#__PURE__*/React.createElement("button", {
+    className: "btn btn-gold",
+    onClick: confirm
+  }, "✔ Confirmar") : /*#__PURE__*/React.createElement("button", {
+    className: "btn btn-blue",
+    onClick: next
+  }, idx < total - 1 ? "Próxima ▶" : "Ver Resultado")));
+}
+
+// ================================================================
+// COMPONENTE: CORRELACIONE
+// ================================================================
+function Correlacione() {
+  const [setIdx, setSetIdx] = useState(0);
+  const [sel, setSel] = useState(null); // selected left item number
+  const [matches, setMatches] = useState({}); // {left_num: right_idx}
+  const [confirmed, setConfirmed] = useState(false);
+  const [showDica, setShowDica] = useState(false);
+  const [done, setDone] = useState(false);
+  const [hist, setHist] = useState([]);
+  const [shuffledRight, setShuffledRight] = useState(null);
+  const curSet = COR[setIdx];
+  const total = COR.length;
+  const rightItems = shuffledRight || curSet.items;
+  const initRight = () => setShuffledRight(shuffle(curSet.items));
+  useEffect(() => {
+    initRight();
+  }, [setIdx]);
+  const selectLeft = n => {
+    if (confirmed) return;
+    setSel(prev => prev === n ? null : n);
+  };
+  const selectRight = rightIdx => {
+    if (confirmed || sel === null) return;
+    // sel = left num, rightIdx = index in shuffled right
+    // Find right item num
+    const rightItem = rightItems[rightIdx];
+    setMatches(prev => ({
+      ...prev,
+      [sel]: rightIdx
+    }));
+    setSel(null);
+  };
+  const confirm = () => {
+    if (Object.keys(matches).length < curSet.items.filter(it => it.n > 0).length) return;
+    setConfirmed(true);
+    setShowDica(false);
+  };
+  const next = () => {
+    if (setIdx < total - 1) {
+      setHist(h => [...h, setIdx]);
+      setSetIdx(i => i + 1);
+      setMatches({});
+      setSel(null);
+      setConfirmed(false);
+      setShuffledRight(null);
+      setShowDica(false);
+    } else setDone(true);
+  };
+  const prev = () => {
+    if (hist.length > 0) {
+      const p = hist[hist.length - 1];
+      setHist(h => h.slice(0, -1));
+      setSetIdx(p);
+      setMatches({});
+      setSel(null);
+      setConfirmed(false);
+      setShuffledRight(null);
+    } else if (setIdx > 0) {
+      setSetIdx(i => i - 1);
+      setMatches({});
+      setSel(null);
+      setConfirmed(false);
+      setShuffledRight(null);
+    }
+    setShowDica(false);
+  };
+  const restart = () => {
+    setSetIdx(0);
+    setMatches({});
+    setSel(null);
+    setConfirmed(false);
+    setDone(false);
+    setHist([]);
+    setShuffledRight(null);
+  };
+  if (done) {
+    return /*#__PURE__*/React.createElement("div", {
+      className: "result-screen"
+    }, /*#__PURE__*/React.createElement("div", {
+      className: "score-big"
+    }, "✅"), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 18,
+        margin: "10px 0"
+      }
+    }, "Todos os conjuntos completados!"), /*#__PURE__*/React.createElement("button", {
+      className: "btn btn-gold",
+      onClick: restart
+    }, "🔄 Recomeçar"));
+  }
+  if (!rightItems) return null;
+  const leftItems = curSet.items.filter(it => it.n > 0);
+  const getMatchResult = leftNum => {
+    const rightIdx = matches[leftNum];
+    if (rightIdx === undefined) return null;
+    const rightItem = rightItems[rightIdx];
+    // Check if correct
+    const correctRightNum = curSet.gabarito[leftNum];
+    return rightItem.n === correctRightNum ? "correct" : "wrong";
+  };
+  return /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    className: "counter"
+  }, "Conjunto ", setIdx + 1, "/", total), /*#__PURE__*/React.createElement("div", {
+    className: "progress-bar-wrap"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "progress-bar-fill",
+    style: {
+      width: `${(setIdx + 1) / total * 100}%`
+    }
+  })), /*#__PURE__*/React.createElement("div", {
+    className: "q-block"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "q-text"
+  }, "Correlacione: ", /*#__PURE__*/React.createElement("strong", {
+    style: {
+      color: "var(--gd)"
+    }
+  }, curSet.titulo)), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12,
+      color: "var(--tx2)",
+      marginBottom: 12
+    }
+  }, sel !== null ? `✋ Item ${sel} selecionado — clique em uma resposta na coluna direita` : "Clique em um item da coluna ESQUERDA para selecionar, depois clique na resposta correta"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12,
+      color: "var(--or)",
+      marginBottom: 8
+    }
+  }, "⚠️ Atenção: um item na direita é FALSO (marcado com \"—\")"), /*#__PURE__*/React.createElement("div", {
+    className: "corr-grid"
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: "var(--tx2)",
+      marginBottom: 6,
+      fontWeight: 700
+    }
+  }, "◀ COLUNA A (Termos)"), leftItems.map(item => {
+    const res = confirmed ? getMatchResult(item.n) : null;
+    let cls = "corr-left-item";
+    if (sel === item.n) cls += " selected";else if (res === "correct") cls += " matched";else if (res === "wrong") cls += " wrong-match";
+    const matchedRightIdx = matches[item.n];
+    const matchedRight = matchedRightIdx !== undefined ? rightItems[matchedRightIdx] : null;
+    return /*#__PURE__*/React.createElement("div", {
+      key: item.n,
+      className: cls,
+      onClick: () => selectLeft(item.n)
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        alignItems: "center",
+        gap: 6
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      className: "corr-num"
+    }, item.n), /*#__PURE__*/React.createElement("span", {
+      style: {
+        flex: 1
+      }
+    }, item.esq), matchedRight && /*#__PURE__*/React.createElement("span", {
+      style: {
+        color: "var(--gd)",
+        fontSize: 11
+      }
+    }, "→ ", matchedRight.n === 0 ? "—" : matchedRight.n), res && /*#__PURE__*/React.createElement("span", null, res === "correct" ? "✅" : "❌")));
+  })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: "var(--tx2)",
+      marginBottom: 6,
+      fontWeight: 700
+    }
+  }, "COLUNA B (Definições) ▶"), rightItems.map((item, ri) => {
+    const isMatched = Object.values(matches).includes(ri);
+    let cls = "corr-right-item";
+    if (confirmed) {
+      // check correctness
+      const leftNum = Object.keys(matches).find(k => matches[k] === ri);
+      if (leftNum) {
+        const correct = curSet.gabarito[leftNum] === item.n;
+        cls += correct ? " matched" : " wrong-match";
+      }
+    } else if (isMatched) cls += " matched";
+    return /*#__PURE__*/React.createElement("div", {
+      key: ri,
+      className: cls,
+      onClick: () => selectRight(ri)
+    }, item.n === 0 ? /*#__PURE__*/React.createElement("span", {
+      style: {
+        color: "var(--rd)"
+      }
+    }, "— (FALSO)") : /*#__PURE__*/React.createElement("span", null, /*#__PURE__*/React.createElement("strong", {
+      style: {
+        color: "var(--gd)"
+      }
+    }, "[", item.n, "]"), " ", item.dir));
+  }))), confirmed && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+    className: "gabarito-box",
+    style: {
+      marginTop: 10
+    }
+  }, "✅ Gabarito: ", leftItems.map(it => `${it.n}→${curSet.gabarito[it.n]}`).join(", ")), /*#__PURE__*/React.createElement("div", {
+    className: "mem-box"
+  }, "🧠 ", curSet.dm)), !confirmed && /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 8
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    className: "btn btn-outline btn-sm",
+    onClick: () => setShowDica(p => !p)
+  }, "💡 Dica"), showDica && /*#__PURE__*/React.createElement("div", {
+    className: "tip-box"
+  }, "💡 ", curSet.d))), /*#__PURE__*/React.createElement("div", {
+    className: "btn-row"
+  }, /*#__PURE__*/React.createElement("button", {
+    className: "btn btn-outline",
+    onClick: prev,
+    disabled: setIdx === 0 && hist.length === 0
+  }, "◀ Anterior"), !confirmed ? /*#__PURE__*/React.createElement("button", {
+    className: "btn btn-gold",
+    onClick: confirm
+  }, "✔ Confirmar") : /*#__PURE__*/React.createElement("button", {
+    className: "btn btn-blue",
+    onClick: next
+  }, setIdx < total - 1 ? "Próximo ▶" : "Ver Resultado")));
+}
+
+// ================================================================
+// COMPONENTE: CITE / LISTE (genérico)
+// ================================================================
+function CiteListe({
+  qs,
+  titulo
+}) {
+  const [idx, setIdx] = useState(0);
+  const [resp, setResp] = useState({});
+  const [confirmed, setConfirmed] = useState({});
+  const [wrong, setWrong] = useState([]);
+  const [showDica, setShowDica] = useState(false);
+  const [done, setDone] = useState(false);
+  const [hist, setHist] = useState([]);
+  const cur = qs[idx];
+  const total = qs.length;
+  const confirm = () => {
+    if (confirmed[idx]) return;
+    if (!resp[idx]?.trim()) {
+      alert("Escreva sua resposta antes de confirmar.");
+      return;
+    }
+    setConfirmed(p => ({
+      ...p,
+      [idx]: true
+    }));
+    setShowDica(false);
+  };
+  const next = () => {
+    if (idx < total - 1) {
+      setHist(h => [...h, idx]);
+      setIdx(i => i + 1);
+      setShowDica(false);
+    } else setDone(true);
+  };
+  const prev = () => {
+    if (hist.length > 0) {
+      const p = hist[hist.length - 1];
+      setHist(h => h.slice(0, -1));
+      setIdx(p);
+    } else if (idx > 0) setIdx(i => i - 1);
+    setShowDica(false);
+  };
+  const restart = () => {
+    setIdx(0);
+    setResp({});
+    setConfirmed({});
+    setWrong([]);
+    setDone(false);
+    setHist([]);
+  };
+  if (done) {
+    return /*#__PURE__*/React.createElement("div", {
+      className: "result-screen"
+    }, /*#__PURE__*/React.createElement("div", {
+      className: "score-big"
+    }, "✅"), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 18,
+        margin: "10px 0"
+      }
+    }, "Concluído!"), /*#__PURE__*/React.createElement("button", {
+      className: "btn btn-gold",
+      onClick: restart
+    }, "🔄 Recomeçar"));
+  }
+  if (!cur) return null;
+  return /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    className: "counter"
+  }, "Questão ", idx + 1, "/", total), /*#__PURE__*/React.createElement("div", {
+    className: "progress-bar-wrap"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "progress-bar-fill",
+    style: {
+      width: `${(idx + 1) / total * 100}%`
+    }
+  })), /*#__PURE__*/React.createElement("div", {
+    className: "q-block"
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 8,
+      marginBottom: 12,
+      alignItems: "flex-start"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "question-num"
+  }, idx + 1), /*#__PURE__*/React.createElement("div", {
+    className: "q-text"
+  }, cur.p)), /*#__PURE__*/React.createElement("textarea", {
+    value: resp[idx] || "",
+    onChange: e => !confirmed[idx] && setResp(p => ({
+      ...p,
+      [idx]: e.target.value
+    })),
+    readOnly: !!confirmed[idx],
+    rows: 5,
+    placeholder: "Escreva sua resposta..."
+  }), confirmed[idx] && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+    className: "gabarito-box",
+    style: {
+      marginTop: 10
+    }
+  }, /*#__PURE__*/React.createElement("strong", null, "📋 Gabarito:"), /*#__PURE__*/React.createElement("ul", {
+    style: {
+      marginTop: 6
+    }
+  }, cur.itens.map((item, i) => /*#__PURE__*/React.createElement("li", {
+    key: i,
+    style: {
+      color: "var(--bl)"
+    }
+  }, item)))), /*#__PURE__*/React.createElement("div", {
+    className: "gabarito-resumido"
+  }, /*#__PURE__*/React.createElement("strong", null, "📌 Resumido:"), " ", cur.gr), /*#__PURE__*/React.createElement("div", {
+    className: "mem-box"
+  }, "🧠 ", cur.dm)), !confirmed[idx] && /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 8
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    className: "btn btn-outline btn-sm",
+    onClick: () => setShowDica(p => !p)
+  }, "💡 Dica"), showDica && /*#__PURE__*/React.createElement("div", {
+    className: "tip-box"
+  }, "💡 ", cur.d))), /*#__PURE__*/React.createElement("div", {
+    className: "btn-row"
+  }, /*#__PURE__*/React.createElement("button", {
+    className: "btn btn-outline",
+    onClick: prev,
+    disabled: idx === 0 && hist.length === 0
+  }, "◀ Anterior"), !confirmed[idx] ? /*#__PURE__*/React.createElement("button", {
+    className: "btn btn-gold",
+    onClick: confirm
+  }, "✔ Confirmar") : /*#__PURE__*/React.createElement("button", {
+    className: "btn btn-blue",
+    onClick: next
+  }, idx < total - 1 ? "Próxima ▶" : "Ver Resultado")));
+}
+
+// ================================================================
+// COMPONENTE: V ou F
+// ================================================================
+function VouF() {
+  const [setIdx, setSetIdx] = useState(0);
+  const [resps, setResps] = useState({});
+  const [confirmed, setConfirmed] = useState(false);
+  const [showDicas, setShowDicas] = useState({});
+  const [done, setDone] = useState(false);
+  const [wrong, setWrong] = useState([]);
+  const [hist, setHist] = useState([]);
+  const curSet = VF[setIdx];
+  const total = VF.length;
+  const setResp = (id, v) => !confirmed && setResps(p => ({
+    ...p,
+    [id]: v
+  }));
+  const confirm = () => {
+    if (Object.keys(resps).length < curSet.itens.length) {
+      alert("Marque todos os itens antes de confirmar.");
+      return;
+    }
+    const newWrong = curSet.itens.filter(it => resps[it.id] !== it.r).map(it => it.id);
+    setWrong(newWrong);
+    setConfirmed(true);
+  };
+  const next = () => {
+    if (setIdx < total - 1) {
+      setHist(h => [...h, setIdx]);
+      setSetIdx(i => i + 1);
+      setResps({});
+      setConfirmed(false);
+      setShowDicas({});
+      setWrong([]);
+    } else setDone(true);
+  };
+  const prev = () => {
+    if (hist.length > 0) {
+      const p = hist[hist.length - 1];
+      setHist(h => h.slice(0, -1));
+      setSetIdx(p);
+      setResps({});
+      setConfirmed(false);
+      setShowDicas({});
+      setWrong([]);
+    } else if (setIdx > 0) {
+      setSetIdx(i => i - 1);
+      setResps({});
+      setConfirmed(false);
+      setShowDicas({});
+      setWrong([]);
+    }
+  };
+  const restart = () => {
+    setSetIdx(0);
+    setResps({});
+    setConfirmed(false);
+    setDone(false);
+    setHist([]);
+    setWrong([]);
+    setShowDicas({});
+  };
+  if (done) {
+    return /*#__PURE__*/React.createElement("div", {
+      className: "result-screen"
+    }, /*#__PURE__*/React.createElement("div", {
+      className: "score-big"
+    }, "✅"), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 18,
+        margin: "10px 0"
+      }
+    }, "Todos os conjuntos V/F completados!"), /*#__PURE__*/React.createElement("button", {
+      className: "btn btn-gold",
+      onClick: restart
+    }, "🔄 Recomeçar"));
+  }
+  return /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    className: "counter"
+  }, "Conjunto ", setIdx + 1, "/", total), /*#__PURE__*/React.createElement("div", {
+    className: "progress-bar-wrap"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "progress-bar-fill",
+    style: {
+      width: `${(setIdx + 1) / total * 100}%`
+    }
+  })), /*#__PURE__*/React.createElement("div", {
+    className: "q-block"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "q-text"
+  }, "Verdadeiro (V) ou Falso (F): ", /*#__PURE__*/React.createElement("strong", {
+    style: {
+      color: "var(--gd)"
+    }
+  }, curSet.titulo)), curSet.itens.map((item, i) => {
+    const resp = resps[item.id];
+    const isCorrect = confirmed && resp === item.r;
+    const isWrong = confirmed && resp !== item.r;
+    return /*#__PURE__*/React.createElement("div", {
+      key: item.id,
+      style: {
+        marginBottom: 12,
+        padding: 10,
+        background: "var(--bg3)",
+        borderRadius: 8,
+        border: `1px solid ${confirmed ? isCorrect ? "var(--gn)" : isWrong ? "var(--rd)" : "var(--bd)" : "var(--bd)"}`
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        gap: 6,
+        alignItems: "flex-start",
+        marginBottom: 8
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      className: "question-num",
+      style: {
+        fontSize: 11,
+        width: 24,
+        height: 24
+      }
+    }, String.fromCharCode(65 + i)), /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 13,
+        lineHeight: 1.5
+      }
+    }, item.afirm)), /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        gap: 6
+      }
+    }, ["V", "F"].map(op => {
+      let cls = "btn btn-sm";
+      if (confirmed) {
+        if (op === item.r) cls += " btn-green";else if (resp === op && op !== item.r) cls += " btn-red";else cls += " btn-outline";
+      } else cls += resp === op ? " btn-gold" : " btn-outline";
+      return /*#__PURE__*/React.createElement("button", {
+        key: op,
+        className: cls,
+        onClick: () => setResp(item.id, op),
+        disabled: confirmed
+      }, op);
+    }), /*#__PURE__*/React.createElement("button", {
+      className: "btn btn-outline btn-sm",
+      onClick: () => setShowDicas(p => ({
+        ...p,
+        [item.id]: !p[item.id]
+      }))
+    }, "💡"), confirmed && /*#__PURE__*/React.createElement("span", null, isCorrect ? "✅" : "❌")), showDicas[item.id] && /*#__PURE__*/React.createElement("div", {
+      className: "tip-box",
+      style: {
+        marginTop: 6
+      }
+    }, "💡 ", item.d), confirmed && /*#__PURE__*/React.createElement("div", {
+      className: "mem-box",
+      style: {
+        marginTop: 6
+      }
+    }, "🧠 ", item.dm));
+  }), confirmed && wrong.length > 0 && /*#__PURE__*/React.createElement("div", {
+    className: "gabarito-box"
+  }, "❌ Errou: ", wrong.join(", "))), /*#__PURE__*/React.createElement("div", {
+    className: "btn-row"
+  }, /*#__PURE__*/React.createElement("button", {
+    className: "btn btn-outline",
+    onClick: prev,
+    disabled: setIdx === 0 && hist.length === 0
+  }, "◀ Anterior"), !confirmed ? /*#__PURE__*/React.createElement("button", {
+    className: "btn btn-gold",
+    onClick: confirm
+  }, "✔ Confirmar") : /*#__PURE__*/React.createElement("button", {
+    className: "btn btn-blue",
+    onClick: next
+  }, setIdx < total - 1 ? "Próximo ▶" : "Ver Resultado")));
+}
+
+// ================================================================
+// COMPONENTE: COMPLETE (dado o termo, complete)
+// ================================================================
+function Complete() {
+  return /*#__PURE__*/React.createElement(CiteListe, {
+    qs: COMP,
+    titulo: "Complete"
+  });
+}
+
+// ================================================================
+// COMPONENTE: MENU DE EXERCÍCIOS
+// ================================================================
+function MenuExercicios({
+  setExer
+}) {
+  const tipos = [{
+    id: "mc",
+    icon: "🔢",
+    name: "Múltipla Escolha",
+    count: `${MC.length} questões`
+  }, {
+    id: "ce",
+    icon: "✅",
+    name: "Certo ou Errado",
+    count: `${CE.length} questões`
+  }, {
+    id: "gap",
+    icon: "📝",
+    name: "Complete Lacunas",
+    count: `${GAP.length} questões`
+  }, {
+    id: "def",
+    icon: "📖",
+    name: "Definições",
+    count: `${DEF.length} questões`
+  }, {
+    id: "cor",
+    icon: "🔗",
+    name: "Correlacione",
+    count: `${COR.length} conjuntos`
+  }, {
+    id: "cite",
+    icon: "💬",
+    name: "Cite",
+    count: `${CITE.length} questões`
+  }, {
+    id: "liste",
+    icon: "📋",
+    name: "Liste",
+    count: `${LIST.length} questões`
+  }, {
+    id: "vf",
+    icon: "🔠",
+    name: "V ou F",
+    count: `${VF.length} conjuntos`
+  }, {
+    id: "comp",
+    icon: "✍️",
+    name: "Complete",
+    count: `${COMP.length} questões`
+  }];
+  return /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    className: "tip-box"
+  }, "💡 Escolha um tipo de exercício abaixo. O progresso é salvo automaticamente."), /*#__PURE__*/React.createElement("div", {
+    className: "exer-menu-grid"
+  }, tipos.map(t => /*#__PURE__*/React.createElement("div", {
+    key: t.id,
+    className: "exer-menu-btn",
+    onClick: () => setExer(t.id)
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "icon"
+  }, t.icon), /*#__PURE__*/React.createElement("div", {
+    className: "name"
+  }, t.name), /*#__PURE__*/React.createElement("div", {
+    className: "count"
+  }, t.count)))));
+}
+
+// ================================================================
+// COMPONENTE: EXERCÍCIOS (roteador)
+// ================================================================
+function Exercicios() {
+  const [exer, setExer] = useState(LS.get("last_exer", null));
+  useEffect(() => {
+    if (exer) LS.set("last_exer", exer);
+  }, [exer]);
+  const nomes = {
+    mc: "Múltipla Escolha",
+    ce: "Certo ou Errado",
+    gap: "Complete Lacunas",
+    def: "Definições",
+    cor: "Correlacione",
+    cite: "Cite",
+    liste: "Liste",
+    vf: "V ou F",
+    comp: "Complete"
+  };
+  return /*#__PURE__*/React.createElement("div", {
+    className: "page"
+  }, /*#__PURE__*/React.createElement("h2", null, "🎯 Exercícios"), exer && /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 8,
+      marginBottom: 12
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    className: "btn btn-outline btn-sm",
+    onClick: () => setExer(null)
+  }, "← Menu"), /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: "var(--gd)",
+      fontWeight: 700
+    }
+  }, nomes[exer])), !exer && /*#__PURE__*/React.createElement(MenuExercicios, {
+    setExer: setExer
+  }), exer === "mc" && /*#__PURE__*/React.createElement(MultiplaEscolha, null), exer === "ce" && /*#__PURE__*/React.createElement(CertoErrado, null), exer === "gap" && /*#__PURE__*/React.createElement(CompleteLacunas, null), exer === "def" && /*#__PURE__*/React.createElement(Definicoes, null), exer === "cor" && /*#__PURE__*/React.createElement(Correlacione, null), exer === "cite" && /*#__PURE__*/React.createElement(CiteListe, {
+    qs: CITE,
+    titulo: "Cite"
+  }), exer === "liste" && /*#__PURE__*/React.createElement(CiteListe, {
+    qs: LIST,
+    titulo: "Liste"
+  }), exer === "vf" && /*#__PURE__*/React.createElement(VouF, null), exer === "comp" && /*#__PURE__*/React.createElement(Complete, null));
+}
+
+// ===== APP PRINCIPAL =====
+function App() {
+  const [tab, setTab] = useState("inicio");
+  return /*#__PURE__*/React.createElement("div", {
+    className: "app"
+  }, /*#__PURE__*/React.createElement("style", null, G), /*#__PURE__*/React.createElement(TopBar, {
+    tab: tab,
+    setTab: setTab
+  }), tab === "inicio" && /*#__PURE__*/React.createElement(Home, {
+    setTab: setTab
+  }), tab === "superresumo" && /*#__PURE__*/React.createElement(SuperResumo, null), tab === "resumo" && /*#__PURE__*/React.createElement(ResumoCompleto, null), tab === "mapa" && /*#__PURE__*/React.createElement(MapaMental, null), tab === "flashcards" && /*#__PURE__*/React.createElement(Flashcards, null), tab === "consulta" && /*#__PURE__*/React.createElement(Consulta, null), tab === "qpadrao" && /*#__PURE__*/React.createElement(QuestoesPadroes, null), tab === "exercicios" && /*#__PURE__*/React.createElement(Exercicios, null));
+}
+
+// ===== RENDER =====
+ReactDOM.createRoot(document.getElementById('root')).render(React.createElement(App));
+document.getElementById('loading').style.display = 'none';
+
+</script>
+</body>
+</html>
